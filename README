@@ -1,0 +1,785 @@
+   
+    Program: sha3sum.c     V1.x    Nov 2018     Jim McDevitt
+   
+    Copyright (c) 2012-2018 McDevitt Heavy Industries, Ltd. (MHI)
+                    All Rights Reserved.
+
+    This Program is governed by the GNU general public license Version 3.0,
+    the fulltext of which is contained in the file LICENSE included in all
+    binary and source code distribution packages.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+   Hash mode interface to the Keccak code package. This program
+   illustrates the use of the Keccak permutation. The methods
+   used here are not necessarily the only way or the best way to
+   implement any of the following options.
+   
+   THE SOLE PURPOSE OF THIS PROGRAM IS THE DEMONSTRATION AND TESTING OF
+   THE KECCAK PERMUTATION.
+   
+   Currently, the options are:
+   
+   usage: sha3sum [OPTIONS] file1 file2 ... [ [OPTIONS] file3 file4 ... ] ...
+   Options:
+	(option letters are case-sensitive and processed in order given):
+	-bn	Hash a dummy file of length n bits.
+	-Bn	Hash a dummy file of length n bytes.
+	-c xxxx	Check hash from file xxxx to see if they are still valid.
+		Here xxxx is saved output from a previous run of sha3sum.
+		Names of files whose hash value have changed are printed.
+	-Cn	Set capacity to n (0<=n<=1584); default is 512.
+		Also sets r (rate) to 1600 - C (capacity).
+	-dn	Set digest length d to n bits, 8<=n<=r (rate);
+		default is 256. See also -Ln.
+	-Dxx	Set delimited suffix to xx (hexadecimal), 01<=xx<=ff;
+		default is 06 (hex).
+	-en	Print n (optional) blocks of output -Ln bits in size.
+		Used for arbitrary length output, n>0; default is 1.
+		If this option is not present and -Ln is, -e1 assumed.
+	+/-f xxxx
+		Output is to file; binary or ASCII hex. Used with -Ln
+		and -en. -f is in squeeze mode, +f is in duplex mode.
+		Output is then generated from a key, key file,
+		IV, IV file, and/or a random seed.
+	-gn	If n (optional) = 0, a binary file is produced (default);
+		if n=1, an ASCII hex file is created. Used with -Ln and -f.
+		See also option -en.
+	-h	Print this help information.
+	-in	Print level n intermediate values (n optional) 1<=n<=3;
+		default is 1.
+	-jxxyy	Set IV to hexadecimal xxyy.. (length 1 to 8192 bits);
+	-Jxxxx	Set IV to ASCII xxxx (length 1 to 1024 bytes);
+	-kxxxx	Set key to hexadecimal xxxx (length 0 to 512 bits);
+		xxxx optional.
+	-Kxxxx	Set key to ASCII xxxx (length 0 to 64 bytes);
+		xxxx optional.
+	-ln	Use n bits (0<=n<=8192) for the message size given with
+		the -m option.
+	-Ln	Output n bits per squeeze (1<=n<=16384); default is 8192.
+		Arbitrary length output. See also option -e.
+	-mxxxx	Compute hash of hexadecimal message xxxx;
+		xxxx optional.
+	-Mxxxx	Compute hash of ASCII message xxxx;
+		xxxx optional.
+	-nc	Configures all settings based on capacity.
+		If c is the capacity, then d = c/2, r = 1600-c,
+		D = 06 (hex), s = c/2. R is set to 24.
+	-Nn	Configures all settings based on the following table
+		where n is the preset #, d is the digest size, r is the
+		rate, C is the capacity, and D is the delimiter.
+		The number of rounds (-R) is set to 24.
+
+		 n   d    r    C   D  Designator Strength
+		=========================================
+		 0 256 1088  512  06  Default    s >= 128 SHA3-256
+		 1 128 1344  256  1f  SHAKE128   s <= 128 VLO
+		 2 224 1152  448  06  SHA3-224   s >= 112 
+		 3 256 1088  512  1f  SHAKE256   s <= 256 VLO
+		 4 256 1088  512  06  SHA3-256   s >= 128 
+		 5 256 1024  576  01  Keccak     s >= 128 
+		 6 384  832  768  06  SHA3-384   s >= 192 
+		 7 512  576 1024  06  SHA3-512   s >= 256 
+		=========================================
+		 VLO denotes variable length output.
+
+	-on	Slow n-bit one-way function. Update state with
+		n 0 bits before the state is finalized.
+	-On	Slow n-byte one-way function. Update state with
+		n 0 bytes before the state is finalized.
+	-p	Print input parameters.
+	+/-q infile outfile
+		Stream cipher. Apply key stream to file infile,
+		and write the result to file outfile. +q encrypts,
+		-q decrypts. A key and/or IV may be used.
+	+/-Q infile outfile
+		Stream cipher. Apply key stream to file infile,
+		and write the result to file outfile. +Q encrypts,
+		-Q decrypts. Unlike -q, this uses the duplex construct.
+		Required input is a key. An IV may be specified. The
+		stream is re-seeded every r/8 - 1 bytes.
+	-rn	Set rate to n (16<=n<=1600); default is 1088.
+		Also sets C (capacity) to 1600 - r (rate).
+	-Rn	Set rounds to n (1<=n<=72); default is 24.
+	-sn	Measure time to perform n initializations (n optional)
+		on any provided configuration; n defaults to one.
+	-t	Turn on printing of elapsed times and bytes/second
+		for each hash as well as the job total.
+	-T	Turn on printing of elapsed times and bytes/second
+		for the job total only.
+	-u	Generate and use a random seed of 1600 bits. Useful
+		for generating key files and IV files. Note that the use of
+		this option renders any operation non-reproducible.
+	-v	Print program version information.
+	-x xxxx	Use the first 512 bytes of file xxxx as a key file.
+		If -k or -K is also used, the key and this file are combined.
+	-X xxxx	Use the first 1024 bytes of file xxxx as an IV file.
+		If -j or -J is also used, the IV and this file are combined.
+
+   For each file given, sha3sum prints a line of the form: 
+	   hashvalue filename
+   If file is `-', or if no files are given, standard input is used.
+   Integers n may use scientific notation, e.g. -B1e9 .
+   
+   Examples:
+   
+   To hash file 'filename', the following command can be used:
+   
+   sha3sum filename
+   
+   which uses all the defaults and is equivalent to:
+   
+   sha3sum -r1088 -C512 -d256 -D06 -R24 filename
+           -or-
+   sha3sum -n512 -D06 filename
+           -or-
+   sha3sum -N4 filename
+   
+   To hash a small message like a password type:
+   
+   sha3sum -Mpassword
+   
+   obtains a 256 bit hash of 'password':
+   
+   c0067d4af4e87f00dbac63b6156828237059172d1bbeac67427345d6a9fda484 -Mpassword
+   
+   sha3sum -d128 -Mpassword
+   
+   obtains a 128 bit hash of 'password':
+   
+   c0067d4af4e87f00dbac63b615682823 -Mpassword
+
+   or use a different domain (-D33) to get a different rather than a
+   truncated hash you might use:
+   
+   sha3sum -d128 -D33 -Mpassword
+
+   obtains a 128 bit hash of 'password':
+
+   9f18585dc76cb9b208799bf9cdd6c078 -Mpassword
+   
+   Instead of using -dn for the digest size, -Ln can be used if variable
+   length output is desired. For instance -L2048 sets the digest size to
+   2048 bits. Related options are -en (print (-e)n instances or blocks of
+   size (-L)n bits, and -gn, whether the output should be in binary form
+   (-g or -g0) or in ASCII hex (-g1). If binary output is desired, option
+   -f must be used. Hex output can goto to the screen as well as a file.
+   For example:
+   
+   sha3sum -e3 -L1024 -Mpassword
+   
+   would hash the phrase 'password' and send 1024 bits (128 bytes) at a
+   time for 3 times to stdout:
+   
+   -- 3 blocks of 128 bytes output from the hash of -Mpassword
+          c0067d4af4e87f00dbac63b6156828237059172d1bbeac67427345d6a9fda484
+          e5c6a3de1fb3fb37b72d6c44f01f512732dbde37ddf1aa9e7d7ed6cf62401ca1
+          3ff3a9fa60c6cdf9b40c3ebfce92b92c78cdd898d34a1426a905b561423aacfa
+          1c5b0b7dacf89d0cb515a0fa35bdaf5d078bb25f75387ea0ec9c004a13f65739
+          69eb4ce2c93353b6869c86d0ebfa45e94ec8f9f16f040faebadae538aa8946d0
+          9b00acf2e1aa4218172c8a98a43626e6e6cb8f3870fdf2de0f91205d35ce4a9f
+          5f0e604f745a9c3a948600d2cc19d2fcfb7ed2ca6f24ca4c3a7f6e8250b3dce4
+          a791a524ead2101ad6e101b3fb59ad3bd60c5e781fb10eb53eada93b8f640eb7
+          7d6072b2fabaed99dfc4996efb23a09a7709ee9f7a69386ad9688ef769b508a6
+          ccd23f4584bc2ad11842988ca49a5a8ca79a8c219f6dd94d270d781f46f107e7
+          bf95bfe547f8aacce69ed98242abef41bfb5b3cc1575f5cf6f42776fc60e7202
+          321a884a158003098223f654f6096f9eaea722e888f7131c821936ef65ac7851
+   
+   If -/+f is used (file output), the input consists of a key (-k or -K),
+   key file (-x filename), Initialization Vector IV (-j or -J), IV
+   file (-X filename), and/or a random seed (-u). The output is binary
+   and sent to a file. The Initialization Vector (IV) need not be secret,
+   but MUST only be used ONCE - otherwise all security is lost.
+   For example, the command:
+   
+   sha3sum -Ksecret -e1024 -L8192 -f testdata
+   
+   would hash the key 'secret' and create a 1MB file named testdata
+   of binary data. The output can be used for statistical analysis,
+   using a much larger size, or as a key or IV file. If you wanted
+   to create a 1KB key file You might use:
+   
+   sha3sum -u -L8192 -f keyfile
+              -or-
+   sha3sum -Jnotneeded -Kthiseither -L8192 -u -f keyfile
+   
+   See creating a key file below. The command:
+   
+   sha3sum -L8192 -e4 filename
+   
+   sends the hash of filename in 4 1KB chunks to the screen. If you
+   wanted 10 64-bit seeds you could type:
+   
+   sha3sum -e10 -L64 -u -M
+   
+   gives you a result similar to the following:
+   
+   -- 10 blocks of 8 bytes output from the hash of -M
+         a7d39b1801eb4b08
+         787513bc28c24897
+         5259dfa032f31f77
+         b64bcdb406fc767b
+         a498bf1781ff4388
+         b474d17a347b8e99
+         4ccec61a46d2c950
+         a2dafb7c2e2ca4b2
+         957be577e5d17c3a
+         a07ca34d8e188b4e
+   
+   The -M (or -m) used by itself with no value indicates a null or empty
+   message.
+   
+   The -u generates a cryptographically strong random seed which it prepends
+   the data with. The process involves reading from the random device the
+   proper number of bytes. Next the bytes are mixed which is then hashed
+   with the capacity set to 1024 (-C1024). The result is obtained by
+   squeezing the sponge and then setting the seed from this value.
+   Currently, the seed is 1600 bits (200 bytes) and can be made longer or
+   shorter by changing a setting in the file sha3sum-config.h. The -u option
+   should be placed after any key or IV as it will incorporate the key
+   and/or IV in the process. A similar command:
+   
+   sha3sum -Kseed -u -L64 -e10 -f data
+   
+   produces a 80 byte binary file called data containing 640 bits (80 bytes)
+   of random data.
+   
+   Compound commands can also be given such as:
+   
+   sha3sum file1 -n1024 file2
+   
+   where the file file1 is hashed with the defaults and file2 is hashed
+   with capacity set at 1024 and the bit rate at 512 to give a result like:
+   
+   e62f67126d7edbc26a5b5246042a4ccad925df7e0d36988857cce5912362a8ac file1
+   -C1024
+   -r576
+   -d512
+   3fe4a732a84b68ba4b6c91893e503e2fc3cb0e1410cad6ed9de16e6cb2c4c8678f9fa4be0f1
+   a864c526a46c3cd8e02e305702640e2c5e8df9793c37139e285dd file2
+   
+   Notice the three lines following the first hash. They are printed because
+   the settings were changed from the default for the file file2. Those three
+   switches would have to be used on the command line preceding the second
+   file to produce the same results. If you re-directed that output to a file
+   like:
+   
+   sha3sum file1 -n1024 file2 >test
+   
+   You could check if any file has changed later by typing:
+   
+   sha3sum -c test
+
+   Any file that changed will print to stdout; used like a trip wire.
+   
+   To select a pre-configured subset of rate, capacity and digest settings,
+   either of the following commands can be used:
+   
+   sha3sum -nc filename
+          -or-
+   sha3sum -Nn filename
+   
+   For -nc, c is the capacity. The digest size is c/2, the rate is set
+   to 1600 - c, and D is set to hex 06. For example:
+   
+   sha3sum -n768 filename
+   
+   would configure the capacity to 768, the digest size to 384, the rate
+   to 832, and the delimiter to hex 06. In addition, the number of rounds
+   (-R) is set to 24.
+   
+   The other switch (-Nn) configures sha3sum using a preset number n
+   according to the following table:
+   
+		 n   d    r    C   D  Designator Strength
+		=========================================
+		 0 256 1088  512  06  Default    s >= 128 SHA3-256
+		 1 128 1344  256  1f  SHAKE128   s <= 128 VLO
+		 2 224 1152  448  06  SHA3-224   s >= 112 
+		 3 256 1088  512  1f  SHAKE256   s <= 256 VLO
+		 4 256 1088  512  06  SHA3-256   s >= 128 
+		 5 256 1024  576  01  Keccak     s >= 128 
+		 6 384  832  768  06  SHA3-384   s >= 192 
+		 7 512  576 1024  06  SHA3-512   s >= 256 
+		=========================================
+		 VLO denotes variable length output.
+
+   The first line shows what the default settings are. To use one of the
+   presets to configure sha3sum, just use -Nn (n optional)
+   For example, the following:
+   
+   sha3sum -n7 filename
+   
+   configures sha3sum the same way as the following:
+   
+   sha3sum -d512 -r1024 -D06 filename
+
+   Notice that -C was not used. That is because when you select either
+   the rate or capacity, the other is automatically set and need not
+   be entered because the program uses the fact that C = 1600 - r.
+   
+   If the digest size you want is not available as a -n or -N setting,
+   you may design your own configuration or use a digest size from
+   the table that is greater than you need then specify with the
+   -d option the size you want. For example if you need a 168 bit
+   digest, you could use a command like:
+   
+   sha3sum -N2 -d168 filename
+   
+   This will truncate the 224 bit hash to 168 bits. Note that the parameter
+   -d168 comes after the parameter -N2. This is so that after configuring
+   for SHA3-224, the digest will then be set to 168. Or to roll your own
+   you might try:
+   
+   sha3sum -d168 -C360 filename
+   
+   remembering that the program will calculate r from 1600 - C. If the
+   capacity is set to a value that is not a multiple of 8, the
+   capacity will be adjusted to make it a multiple of 8. For example:
+   
+   sha3sum -C490 -Mtest
+   
+   will produce output like:
+   
+   --I - Changed capacity from 490 to 496 so it is a multiple of 8;
+   rate = 1104.
+   -- Sat Aug 17 10:32:12 2013
+   1067eb1dc5b692889e5b15d3ae2f48c58be38bcc6513e3c9bf65f224b846e074 -Mtest
+   
+   rate would then be set to 1104.
+   
+   For long hash values, the command:
+   
+   sha3sum -L4096 -Mtest
+   
+   produces this output:
+   
+   -- Sat Aug 17 10:36:07 2013
+       36f028580bb02cc8272a9a020f4200e346e276ae664e45ee80745574e2f5ab80
+       c474cb13d3ef64db7219c6fb9aa3f8fdc934c3f8f42b6e6babcae5775dbf1708
+       e0d222a0a19e8578992f6486f9d94c868f8cb94396fabd7c55d798f86ea8eb7b
+       62893afe4bd38f7b7c3ebc27a1f6040a254a0cc91e4c5f5df4828ebb233fffd2
+       08b04bf83b805b1c4630385c0acd721e1e2129278cc2efa5b16ebe68074832ce
+       fa0e6e3b584a1c3a43ebeb2fe97fa2579ff0edf220556c5b76e2ae3601343c5c
+       5e4a45eecde7f17856a02b204b740a73608c987504e290babe12ea6cb95deea1
+       2615c3a9efeef707eca179eab8c806019e086c4d204a38db2343bce3abb3b41a
+       62a4920e839ac576afd8fe8f354ee37cc8e09eb2596116134e48ca6b645eae03
+       aad9100bcd1d70ebb9feb30009d85922e0180efc990eebe301ee2a20e90f2cf0
+       9d2ca627d9f8d3e772241639f88671197751536f82f94ef42d6fcc3bac27d81f
+       c282dcabf84a0822809ef736b1f019abd185f218f9b495442d797d7f64247b02
+       b9dc2dd4944f6bba638cf04e7c872c397925849166d6f714f2fecb56a893e6ed
+       d020f3eb070feb0189860af7a319d541d0b29958b948f012177746d6f9bf236e
+       f123d952e884f8dfb4811af5a379fb3443470134d3b4f1b1642b376a689a745c
+       e9d2e194cdedc29fc85bdd1a0da128f734ba7bbdeb5f96c2711103bfc54bb473
+   
+   To use a key or salt:
+   
+   sha3sum -Kpassword filename
+   
+   will prepend the file with a 64 byte key. The key will be the 8 byte ASCII
+   string 'password' plus 56 null bytes.
+   
+   sha3sum -k01febead filename
+   
+   will prepend the file with a 64 byte key also. The key will be the 4 byte
+   hex string '01febead' plus 60 zero bytes.
+   
+   Note that if no key is specified, the data will NOT be prepended with 64
+   byte null key unless explicitly asked for by specifying -k0, -k, or -K.
+      
+   Typical use of sha3sum is to compute the hash of files and save the output.
+   Later, the files can be re-checked to see if any changes were made i.e.:
+   
+   sha3sum file1 file2 file3 file4 > filehashes.txt
+   
+   Later the same files can be checked by typing:
+   
+   sha3sum -c filehashes.txt
+   
+   If using a key, the key must be entered before the -c
+   
+   sha3sum -Ksecret -c filehashes.txt
+   
+   will set the key before recalculating the hashes. When a hash is computed,
+   the program prints out any options that are different from the default so
+   that -c can reconfigure with the settings as they were when the hashes
+   were computed the first time. For example:
+   
+   sha3sum -d128 -C448 filename > filehashes.txt
+   
+   produces the file filehashes.txt containing:
+   
+   -- Sat Aug 17 15:57:16 2013
+   -C448
+   -d128
+   -r1152
+   22d0c59a8bd17e9d70f46534a71a4abd filename
+   
+   When this file is used a again to compare, the -c option will use
+   the three settings before it recomputes the hashes. If using a key,
+   you could use:
+   
+   sha3sum -d128 -C448 -k01febead filename > hashes.txt
+   
+   which produces the file hashes.txt containing:
+   
+   -- Sat Aug 17 15:59:29 2013
+   -C448
+   -d128
+   -r1152
+   d7ace68f9e6e15997296a387b094dcbc filename
+   
+   Notice that the key was not printed. This is for security reasons. The
+   following command would be used to verify the files:
+
+   sha3sum -k01febead -c hashes.txt
+   
+   The option -mxxxx allows a message in hex format (case insensitive) to be
+   entered; and an optional -ln which selects the number of bits to use of
+   it, i.e.:
+   
+   sha3sum -l2 -mff filename
+   
+   would use just the first 2 bits of the hex string ff; where the command:
+   
+   sha3sum -mff filename
+   
+   would use all 8 bits. This option is primarily for testing purposes.
+
+   The -Dxx option is used to specify a byte (in hexadecimal) containing from
+   0 to 7 trailing bits that must be absorbed. These n bits must be in the
+   least significant bit positions. These bits must be delimited with a bit
+   1 at position n (counting from 0=LSB to 7=MSB) and followed by bits 0
+   from position n + 1 to position 7. For example:
+   
+   If no bits are to be absorbed, then the delimiter must be 0x01.
+   If the 2-bit sequence 0, 0 is to be absorbed, the delimiter
+   must be 0x04. If the 5-bit sequence 0, 1, 0, 0, 1 is to be absorbed,
+   the delimiter must be 0x32. If the 7-bit sequence 1, 1, 0, 1, 0, 0, 0 is
+   to be absorbed, the delimiter must be 0x8B. An example:
+   
+   sha3sum -N768 -D32 filename
+   
+   specifies that the delimiter to be used is 0x32 instead of the default
+   0x06.
+   
+   For debugging or research purposes, use the "reference" versions of the
+   Keccak routines. They are much slower, but two more options are available
+   for use. They are:
+   
+   -Rn where n is the number of rounds and
+   -in to print intermediate values. (n optional)
+   
+   The number n is optional for -i but if entered it specifies the level
+   of detail the user wants with 3 being the most verbose (which can
+   result in a quite large output.) -i1 (the default) will show the initial
+   state, all data input, and the state before and after the permutation.
+   -i2 in addition to -i1 will show the round constants and the rho offsets.
+   -i3 in addition to -i2 will show the state after each of the five stages:
+   theta, rho, pi, chi, and iota of each round.
+   
+   The command:
+   
+   sha3sum -R48 filename
+   
+   is the same as
+   
+   sha3sum -r1088 -C512 -d256 -R48 filename
+   
+   This sets the number of rounds to 48 (double the default,) as well
+   as specifying a 256 bit digest length with a capacity of 512.
+   The default number of rounds is 24. This is useful for cryptanalysis
+   to test crippled versions of the permutation using a reduced number
+   of rounds. It also can be used to increase the number of rounds as
+   well.
+   
+   sha3sum -i filename
+   
+   Shows the hash of filename and intermediate values of the permutation.
+   The i option can take a number as a parameter ranging from 1 to 3 with
+   3 being the most verbose. This option is helpful for debugging and
+   research.
+   
+   The command:
+   
+   sha3sum -t filename
+   
+   is useful to determine aggregate throughput and measuring the efficiency
+   of different capacity and rate settings. These timing values are not as
+   tightly implemented as they could be, but I did not want to alter any of
+   the supplied Keccak routines.
+   
+   For use as a stream cipher, one can use commands such as:
+   
+   sha3sum -x keyfile -Ksecretpassword +q infile outfile
+            =or=
+   sha3sum -x keyfile -X ivfile +Q infile outfile
+
+   to encrypt a file called infile and save it as outfile. For either option,
+   a + (+Q or +q) means encrypt, a minus (-Q or -q) means decrypt. For
+   example to encrypt a file named test, a command like:
+
+   sha3sum -X ivfile -x keyfile +Q test file-encrypted
+
+   and the command:
+   
+   sha3sum -X ivfile -x keyfile -Q file-encrypted file-decrypted
+   
+   would decrypt the file file-encrypted and save it as file-decrypted.
+   
+   The difference between q and Q is q puts the sponge in squeeze mode while
+   Q uses duplexing. The IV is optional for q, but mandatory for option Q.
+   The q option reads the input file and XOR's the data with the key stream.
+   
+   The Q option will XOR the key stream with the file infile and write
+   the result to the file outfile using a process similar to the CBC mode of
+   a block cipher. Because of this, an IV and/or IV file is required as well
+   as a key or key file. The key stream is then re-seeded every r/8-1 bytes
+   with the cipher text of the previous block.
+   
+   An IV MUST only be used ONE time - or else ALL security is lost. If a
+   different file name is always used, the IV could simply be the filename.
+   For example:
+   
+   sha3sum -Jfile-encrypted -x keyfile +Q test file-encrypted
+
+   As long as you NEVER use the filename "file-encrypted" again.
+   
+   A fingerprint is produced which is used to check against foreries. If the
+   fingerprint produced after decryption does not match the fingerprint
+   produced when the file was encrypted, the process has been subverted and
+   the file can not be authenticated or trusted.
+   
+   sha3sum -X ivfile -x keyfile +Q test file-encrypted would produce:
+   
+   -- Sat Aug 17 15:59:29 2013
+   -- Fingerprint of 'file-encrypted':
+   -- 31de5d1332dea8816c07111b5a83cc7c46b6a6496a095c27d55c6a91fe53f83a
+   -- 1 file created
+   
+   sha3sum -X ivfile -x keyfile -Q file-encrypted file-decrypted
+   
+   -- Sat Aug 17 16:02:15 2013
+   -- Fingerprint of 'file-encrypted':
+   -- 31de5d1332dea8816c07111b5a83cc7c46b6a6496a095c27d55c6a91fe53f83a
+   -- 1 file created
+
+   The security parameters can also be used. For instance, the command:
+
+   sha3sum -C576 -X ivfile -x keyfile +Q infile outfile
+
+   sets the capacity to 576 and the rate to 1024 first. The block size
+   would be 576 (bit rate) / 8 - 1 = 71 bytes. If the rate and capacity
+   differ from the default, they must be set the same as when the file
+   was encrypted or decryption will not work. The program does not erase
+   any files for safety. You need to delete the plain text file with a
+   file shredder so no one can retrieve it.
+   
+   A key (or IV) may be entered in the following way using
+   this command:
+
+   sha3sum -x keyfile -X ivfile +Q infile outfile
+
+   will use the file keyfile as a key and the file ivfile as an IV
+   before the file infile is encrypted. A key can also be entered by
+   -k or -K, as in this command:
+   
+   sha3sum -x keyfile -k01febead -X ivfile +Q infile outfile
+                            -or-
+   sha3sum -Ksecretpassword -X ivfile +Q infile outfile
+   
+   the two keys will be added together and then used to encrypt
+   file infile. A key file can be any file but it is better to use a
+   binary file as it will have more entropy.
+   
+   You can make a random keyfile with a command like:
+   
+   sha3sum -L8192 -k06b362f59d2c -u -f keyfile
+   
+   This will create a binary file named keyfile 1 KB (8192 bits) long.
+   This file can then be used with or without -k or -K to encrypt or
+   hash a file. The -X option (and file) required for the Q option
+   and can be made the same way.
+   
+   +/-f can be used to generate files of any size, binary or ASCII hex,
+   and either use squeeze mode (-f) or duplexing (+f). To make a 100MB
+   (slightly less) random file the following could be used:
+   
+   sha3sum -u -L8192 -e1e5 +f randomfile
+   
+   This also uses +f which uses duplexing and re-seeding. Usually a better
+   choice when very large files are needed
+   
+   The options -j and -J operate the same as -k and -k except the initial-
+   ization vector (IV) is usually used differently. You can also use an IV
+   file (-X) for hashing so you can use:
+   
+   sha3sum -JMyspace filename
+             -or-
+   sha3sum -j86f01e2 -X ivfile filename
+             -or-
+   sha3sum -X ivfile filename
+   
+   as well as any other option like -k or -x for instance.
+   
+   If a keyfile or IV file is used, they must not change or be deleted
+   as you will be unable to decrypt any files encrypted with that key
+   or IV file. One way is to use both a key and key file; the keyfile
+   can be kept on a USB stick. That way to decrypt files, not only will
+   a key need to be entered, but the person will also need the USB stick
+   too - just like a key card. For example:
+
+   sha3sum -x keyfile -K"this is a long password" +Q infile outfile
+
+   will encrypt the file with both types of keys. The file outfile
+   can only be decrypted with the phrase "this is a long password",
+   and the keyfile. If the keyfile is not kept on the computer, no
+   one will be able to decrypt it unless they also have the USB stick.
+   see "To use a key or salt" above. To decrypt the file outfile, the
+   following command would be used:
+
+   sha3sum -x keyfile -K"this is a long password" -Q outfile newfile
+
+   The file newfile is now exactly the same as the file infile. After
+   a file has been encrypted, the original file should not just be
+   deleted normally but should be overwritten first, then deleted.
+   This way the original file cannot be just "unerased". This step
+   is extremely important. Under linux, the shred command can be used
+   to accomplish this. Read the man page for shred (man shred). 
+   
+   NOTE: All key(s) and IV(s) are hashed before they are used.
+   
+   NOTE: IF ANY OF THE FOLLOWING ARE LOST OR FORGOTTEN: KEY, KEY FILE,
+   IV, AND/OR IV FILE, YOU WILL LOOSE *ALL* FILES ENCRYPTED WITH THEM.
+   
+   For performance testing, The options -b, B, f, o, O, s, and -t are
+   useful. The B option makes a dummy file (in memory) so you can measure
+   performance with out any disk overhead. For instance:
+   
+   sha3sum -t -B1e8
+   
+   hashes a dummy file of 100,000,000 bytes, -b can be used to specify
+   bits. The output looks like:
+
+   -- Sat Aug 17 16:58:10 2013
+   f2d2a14a0783fc4d61fcb19d29025180dcd3b4ce44376026516a1030f70553a5 -B1e8
+   -- Length in = 1e+08 bytes
+   -- Length out = 32 bytes
+   -- Elapsed time = 0.950 seconds
+   -- Absorption calls made = 91912
+   -- Megabytes absorbed per second = 105.263
+   -- Microseconds per absorption = 10.336
+   -- Squeeze calls made = 1
+   -- Total clock ticks = 3272253840
+   -- Clock ticks / byte absorbed = 32
+   -- Clock ticks / absorption call = 35602
+   
+   A slow one-way function is implemented with the options -o and -O which
+   can be used to see how many zero bytes or bits a hash must be appended
+   to obtain the appropriate delay on the CPU that this program runs on.
+
+   The -o and -O options can be tested by using either -on or -On; where n
+   is the number of bits (-on) (hexadecimal), or (-On) where n is the number
+   of zero bytes to append. The idea being that appending n bytes of 0's
+   after a password will make password guessing take a very long time.
+   For instance:
+   
+   sha3sum -t -Mpassword
+   
+   has the following output:
+   
+   -- Sat Aug 17 16:58:10 2013
+   c0067d4af4e87f00dbac63b6156828237059172d1bbeac67427345d6a9fda484 -Mpassword
+   -- Length in = 8 bytes
+   -- Length out = 32 bytes
+   -- Elapsed time too short to measure...
+   -- Absorption calls made = 1
+   -- Squeeze calls made = 1
+   -- Total clock ticks = 643552
+   
+   where as this command:
+   
+   sha3sum -t -O1e9 -Mpassword
+   
+   -- Sat Aug 17 16:59:07 2013
+   20c1d9c7f28e718e74e1c3b89f5c48e134fb300f492f2889b254282110abac69 -Mpassword
+   -- Length in = 1e+09 bytes
+   -- Length out = 32 bytes
+   -- Elapsed time = 10.710 seconds
+   -- Absorption calls made = 919119
+   -- Megabytes absorbed per second = 93.3707
+   -- Microseconds per absorption = 11.6525
+   -- Squeeze calls made = 1
+   -- Total clock ticks = 36749361210
+   -- Clock ticks / byte absorbed = 36
+   -- Clock ticks / absorption call = 39983
+   
+   So for each password the adversary wants to try, it will cost about 11
+   seconds per try. Guessing millions of passwords is computationally
+   infeasible.
+   
+   -s is to measure the cost of various setup configurations. For instance
+   the command:
+   
+   sha3sum -x keyfile -X ivfile -s50
+   
+   produces output similar to the following:
+   
+   -- Sat Aug 17 16:58:10 2013
+   -- Algorithm: Default  (SHA3-256)
+   -- C =     512 (capacity)
+   -- r =    1088 (bit rate)
+   -- d =     256 (digest length in bits)
+   -- D =      06 (hex delimiter byte)
+   -- x = 'keyfile' (key file - 512 bytes)
+   -- X = 'ivfile' (Initialization Vector file - 1024 bytes)
+
+   -- Setup trials as configured above --
+   -- Setup trials = 50
+   -- Clock ticks / setup = 398666435
+   -- Microseconds / setup = 115400
+
+   -- Length in = 35200 bytes
+   -- Length out = 3.07302e+08 bytes
+   -- Elapsed time = 5.770 seconds
+   -- Absorption calls made = 200
+   -- Squeeze calls made = 150050
+   -- Megabytes squeezed per second = 53.2586
+   -- Microseconds per squeeze = 38.4538
+   -- Total clock ticks = 19933321763
+   -- Clock ticks / byte squeezed = 64
+   -- Clock ticks / squeeze call = 132844
+   
+   So if you use the above configuration, each setup will take
+   about .12 seconds for each file that is processed.
+   
+   To obtain help type:
+   
+   sha3sum -h
+   
+   If you do not need intermediate values and do not need to change the number
+   of rounds, it is highly recommended to use the optimized version. Security
+   conscious individuals should download the Keccak code package directly from
+   
+   http://keccak.noekeon.org
+   
+   Use my makefile and only build sha3sum32 and/or sha3sum64 as they do not
+   depend on any modifications to the source files (make optimized).
+   
+   I also have versions of the Keccak modules that exploit Intel MIC and
+   options that the Intel(r) C compiler, tools, and primitives give you that are
+   not included here. The improved performance is significantly better than
+   any of the optimized versions; most notably tree hashing. All tests were
+   run on an 8 core PC.
+   
+   This program is easy to modify if it does not meet your usage requirements.
+   Everything is parameterized, even the help text. To change any of the
+   defaults and/or limits see the file sha3sum-config.h

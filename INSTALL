@@ -1,0 +1,127 @@
+
+   Program: sha3sum.c     V1.x    Nov 2018     Jim McDevitt
+  
+   Copyright (c) 2012-2018 McDevitt Heavy Industries, Ltd. (MHI)
+                     All Rights Reserved.
+  
+    This Program is governed by the GNU general public license Version 3.0,
+    the fulltext of which is contained in the file LICENSE included in all
+    binary and source code distribution packages.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    Hash mode interface to the Keccak code package.
+
+    The Keccak F1600 modules were downloaded from:   
+        http://keccak.noekeon.org
+
+    For the 64 bit reference version the following Keccak modules are used:
+
+    KeccakHash.c
+    KeccakHash.h
+    displayIntermediateValues.c
+    displayIntermediateValues.h
+    KeccakF-1600-reference.c
+    KeccakF-1600-reference.h
+    KeccakF-1600-interface.h
+    KeccakDuplex.c
+    KeccakDuplex.h
+    KeccakSponge.c
+    KeccakSponge.h
+    brg_endian.h
+  
+    For the 64 bit optimized version, the following Keccak modules are used:
+
+    KeccakHash.c
+    KeccakHash.h
+    KeccakF-1600-opt64.c
+    KeccakF-1600-interface.h
+    KeccakF-1600-opt64-settings.h
+    KeccakF-1600-64.macros
+    KeccakF-1600-unrolling.macros
+    KeccakDuplex.c
+    KeccakDuplex.h
+    KeccakSponge.c
+    KeccakSponge.h
+    brg_endian.h
+
+    For the 32-bit reference version, replace:
+
+        KeccakF-1600-reference.c with KeccakF-1600-reference32BI.c
+
+    For the 32-bit optimized version, replace:
+
+        KeccakF-1600-opt64.c with KeccakF-1600-inplace32BI.c
+
+    For the 64-bit compact version, replace:
+
+        KeccakF-1600-opt64.c with Keccak-compact64.c
+
+    INSTALLATION:
+
+    If intermediate values and the ability to change the number of
+    rounds are not needed, Use the optimized versions. To make all
+    four versions type:
+  
+        make
+   
+    This creates a bin directory and the files sha3sum64
+    (optimized version), sha3sumr64 (reference version),
+    sha3sum32 (optimized version using in place 32-bit interleaving),
+    sha3sumr32 (reference version using 32-bit interleaving), and
+    sha3sumc (compact 64-bit).
+
+    To build individually type:
+
+        make sha3sum64      (Optimized 64-bit)
+            -or-
+        make sha3sum32      (Optimized 32-bit)
+            -or-
+        make sha3sumr64     (Reference 64-bit)
+            -or-
+        make sha3sumr32     (Reference 32-bit)
+            -or-
+        make sha3sumc       (Compact 64-bit)
+
+    To build just the optimized versions type:
+
+        make optimized
+
+    or for just the reference versions type:
+
+        make reference
+   
+    For just the 64-bit versions type:
+   
+        make 64-bit
+   
+    and for just the 32-bit versions type:
+   
+        make 32-bit
+
+    Rename your choice to sha3sum. (optional)
+
+=======================================================================
+
+    The original makefile that is distributed with the code package
+    (named makefile-Keccak) is also included (but not needed here).
+    To use the original makefile, nrRounds was declared in
+    main.c so that the above modifications will not break any of the
+    original code package builds if needed. Added line:
+
+        unsigned int nrRounds = 24;
+
+    at the beginning of program main.c.
+  
+   Please send comments/bugs to:
+  
+   jimmcdevitt60 at yahoo dot com dot ph
+
