@@ -1,17 +1,16 @@
    
-    Program: sha3sum.c     V1.x    Nov 2018     Jim McDevitt
+    Program: sha3sum.c     V1.x    Nov 2019     Jim McDevitt
    
-    Copyright (c) 2012-2018 McDevitt Heavy Industries, Ltd. (MHI)
+    Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
                     All Rights Reserved.
 
-    This Program is governed by the GNU general public license Version 3.0,
+    This Program is governed by the GNU general public license Version 2.0,
     the fulltext of which is contained in the file LICENSE included in all
     binary and source code distribution packages.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    the Free Software Foundation, version 2.0 ONLY.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -28,107 +27,114 @@
    
    Currently, the options are:
    
-   usage: sha3sum [OPTIONS] file1 file2 ... [ [OPTIONS] file3 file4 ... ] ...
-   Options:
-	(option letters are case-sensitive and processed in order given):
-	-bn	Hash a dummy file of length n bits.
-	-Bn	Hash a dummy file of length n bytes.
-	-c xxxx	Check hash from file xxxx to see if they are still valid.
-		Here xxxx is saved output from a previous run of sha3sum.
-		Names of files whose hash value have changed are printed.
-	-Cn	Set capacity to n (0<=n<=1584); default is 512.
-		Also sets r (rate) to 1600 - C (capacity).
-	-dn	Set digest length d to n bits, 8<=n<=r (rate);
-		default is 256. See also -Ln.
-	-Dxx	Set delimited suffix to xx (hexadecimal), 01<=xx<=ff;
-		default is 06 (hex).
-	-en	Print n (optional) blocks of output -Ln bits in size.
-		Used for arbitrary length output, n>0; default is 1.
-		If this option is not present and -Ln is, -e1 assumed.
-	+/-f xxxx
-		Output is to file; binary or ASCII hex. Used with -Ln
-		and -en. -f is in squeeze mode, +f is in duplex mode.
-		Output is then generated from a key, key file,
-		IV, IV file, and/or a random seed.
-	-gn	If n (optional) = 0, a binary file is produced (default);
-		if n=1, an ASCII hex file is created. Used with -Ln and -f.
-		See also option -en.
-	-h	Print this help information.
-	-in	Print level n intermediate values (n optional) 1<=n<=3;
-		default is 1.
-	-jxxyy	Set IV to hexadecimal xxyy.. (length 1 to 8192 bits);
-	-Jxxxx	Set IV to ASCII xxxx (length 1 to 1024 bytes);
-	-kxxxx	Set key to hexadecimal xxxx (length 0 to 512 bits);
-		xxxx optional.
-	-Kxxxx	Set key to ASCII xxxx (length 0 to 64 bytes);
-		xxxx optional.
-	-ln	Use n bits (0<=n<=8192) for the message size given with
-		the -m option.
-	-Ln	Output n bits per squeeze (1<=n<=16384); default is 8192.
-		Arbitrary length output. See also option -e.
-	-mxxxx	Compute hash of hexadecimal message xxxx;
-		xxxx optional.
-	-Mxxxx	Compute hash of ASCII message xxxx;
-		xxxx optional.
-	-nc	Configures all settings based on capacity.
-		If c is the capacity, then d = c/2, r = 1600-c,
-		D = 06 (hex), s = c/2. R is set to 24.
-	-Nn	Configures all settings based on the following table
-		where n is the preset #, d is the digest size, r is the
-		rate, C is the capacity, and D is the delimiter.
-		The number of rounds (-R) is set to 24.
+usage: sha3sum [OPTIONS] file1 file2 ... [ [OPTIONS] file3 file4 ... ] ...
+Options:
+  (option letters are case-sensitive and processed in order given):
+  -bn Hash a dummy file of length n bits.
+  -Bn Hash a dummy file of length n bytes.
+  -c xxxx Check hash from file xxxx to see if they are still valid.
+    Here xxxx is saved output from a previous run of sha3sum.
+    Names of files whose hash value have changed are printed.
+  -Cn Set capacity to n (0<=n<=1584); default is 512.
+    Also sets r (rate) to 1600 - C (capacity).
+  -dn Set digest length d to n bits, 8<=n<=r (rate);
+    default is 256. See also -Ln.
+  -Dxx  Set delimited suffix to xx (hexadecimal), 01<=xx<=ff;
+    default is 06 (hex).
+  -en Print n (optional) blocks of output -Ln bits in size.
+    Used for arbitrary length output, n>0; default is 1.
+    If this option is not present and -Ln is, -e1 assumed.
+  +/-f xxxx
+    Output is to file; binary or ASCII hex. Used with -Ln
+    and -en. -f is in squeeze mode, +f is in duplex mode.
+    Output is then generated from a key, key file,
+    IV, IV file, and/or a random seed.
+  -gn If n (optional) = 0, a binary file is produced (default);
+    if n=1, an ASCII hex file is created. Used with -Ln and -f.
+    See also option -en.
+  -h  Print this help information.
+  -in Print level n intermediate values (n optional) 1<=n<=3;
+    default is 1.
+  -jxxyy  Set IV or salt to hexadecimal xxyy.. (length 1 to 8192 bits);
+  -Jxxxx  Set IV or salt to ASCII xxxx (length 1 to 1024 bytes);
+  -kxxxx  Set key to hexadecimal xxxx (length 0 to 512 bits);
+    xxxx optional.
+  -Kxxxx  Set key to ASCII xxxx (length 0 to 64 bytes);
+    xxxx optional.
+  -ln Use n bits (0<=n<=8192) for the message size given with
+    the -m option.
+  -Ln Output n bits per squeeze (1<=n<=16384); default is 8192.
+    Arbitrary length output. See also option -e.
+  -mxxxx  Compute hash of hexadecimal message xxxx;
+    xxxx optional.
+  -Mxxxx  Compute hash of ASCII message xxxx;
+    xxxx optional.
+  -nc Configures all settings based on capacity.
+    If c is the capacity, then d = c/2, r = 1600-c,
+    D = 06 (hex), s = c/2. R is set to 24.
+  -Nn Configures all settings based on the following table
+    where n is the preset #, d is the digest size, r is the
+    rate, C is the capacity, and D is the delimiter.
+    The number of rounds (-R) is set to 24.
 
-		 n   d    r    C   D  Designator Strength
-		=========================================
-		 0 256 1088  512  06  Default    s >= 128 SHA3-256
-		 1 128 1344  256  1f  SHAKE128   s <= 128 VLO
-		 2 224 1152  448  06  SHA3-224   s >= 112 
-		 3 256 1088  512  1f  SHAKE256   s <= 256 VLO
-		 4 256 1088  512  06  SHA3-256   s >= 128 
-		 5 256 1024  576  01  Keccak     s >= 128 
-		 6 384  832  768  06  SHA3-384   s >= 192 
-		 7 512  576 1024  06  SHA3-512   s >= 256 
-		=========================================
-		 VLO denotes variable length output.
+     n   d    r    C   D  Designator Strength
+    =========================================
+     0 256 1088  512  06  Default    s >= 128 SHA3-256
+     1 128 1344  256  1f  SHAKE128   s <= 128 VLO
+     2 224 1152  448  06  SHA3-224   s >= 112 
+     3 256 1088  512  1f  SHAKE256   s <= 256 VLO
+     4 256 1088  512  06  SHA3-256   s >= 128 
+     5 288 1024  576  01  Keccak     s >= 144 
+     6 384  832  768  06  SHA3-384   s >= 192 
+     7 512  576 1024  06  SHA3-512   s >= 256 
+    =========================================
+     VLO denotes variable length output.
 
-	-on	Slow n-bit one-way function. Update state with
-		n 0 bits before the state is finalized.
-	-On	Slow n-byte one-way function. Update state with
-		n 0 bytes before the state is finalized.
-	-p	Print input parameters.
-	+/-q infile outfile
-		Stream cipher. Apply key stream to file infile,
-		and write the result to file outfile. +q encrypts,
-		-q decrypts. A key and/or IV may be used.
-	+/-Q infile outfile
-		Stream cipher. Apply key stream to file infile,
-		and write the result to file outfile. +Q encrypts,
-		-Q decrypts. Unlike -q, this uses the duplex construct.
-		Required input is a key. An IV may be specified. The
-		stream is re-seeded every r/8 - 1 bytes.
-	-rn	Set rate to n (16<=n<=1600); default is 1088.
-		Also sets C (capacity) to 1600 - r (rate).
-	-Rn	Set rounds to n (1<=n<=72); default is 24.
-	-sn	Measure time to perform n initializations (n optional)
-		on any provided configuration; n defaults to one.
-	-t	Turn on printing of elapsed times and bytes/second
-		for each hash as well as the job total.
-	-T	Turn on printing of elapsed times and bytes/second
-		for the job total only.
-	-u	Generate and use a random seed of 1600 bits. Useful
-		for generating key files and IV files. Note that the use of
-		this option renders any operation non-reproducible.
-	-v	Print program version information.
-	-x xxxx	Use the first 512 bytes of file xxxx as a key file.
-		If -k or -K is also used, the key and this file are combined.
-	-X xxxx	Use the first 1024 bytes of file xxxx as an IV file.
-		If -j or -J is also used, the IV and this file are combined.
+  -on Slow n-bit one-way function. Update state with
+    n 0 bits before the state is finalized.
+  -On Slow n-byte one-way function. Update state with
+    n 0 bytes before the state is finalized.
+  -p  Print input parameters.
+  +/-q infile outfile
+    Straight stream cipher. Apply key stream to file infile,
+    and write the result to file outfile. +q encrypts,
+    -q decrypts. A key and/or IV may be specified.
+  +/-Q infile outfile
+    Stream cipher. Apply key stream to file infile,
+    and write the result to file outfile. +Q encrypts,
+    -Q decrypts. Unlike -q, this uses the duplex construct.
+    Required input is a key. An IV may be specified.
+    The stream is re-seeded every r/8 - 1 bytes.
+    If no IV is specified, an IV will be generated.
+  -rn Set rate to n (16<=n<=1600); default is 1088.
+    Also sets C (capacity) to 1600 - r (rate).
+  -Rn Set rounds to n (1<=n<=72); default is 24.
+  -sn Measure time to perform n initializations (n optional)
+    on any provided configuration; n defaults to one.
+  -S  Allow the key to be printed. This is used by options -c
+    and -p. Should only be used for testing purposes or if
+    the key is used for non-security purposes such as a salt.
+    The key printed is specified by -K.
+  -t  Turn on printing of elapsed times and bytes/second
+    for each hash as well as the job total.
+  -T  Turn on printing of elapsed times and bytes/second
+    for the job total only.
+  -u  Generate and use a random seed of 1600 bits. Useful
+    for generating key files and IV files. Note that the use of
+    this option renders any operation non-reproducible.
+  -v  Print program version information.
+  -x xxxx Use the first 512 bytes of file xxxx as a key file.
+    If -k or -K is also used, the key and this file are combined.
+  -X xxxx Use the first 1024 bytes of file xxxx as an IV file.
+    If -j or -J is also used, the IV and this file are combined.
+  -yn PIM - Specify number key iterations (default = 300000)
+    The minimum is 10000.
 
-   For each file given, sha3sum prints a line of the form: 
-	   hashvalue filename
-   If file is `-', or if no files are given, standard input is used.
-   Integers n may use scientific notation, e.g. -B1e9 .
-   
+For each file given, sha3sum prints a line of the form: 
+  hashvalue filename
+If file is `-', or if no files are given, standard input is used.
+Integers n may use scientific notation, e.g. -B1e9 .
+
    Examples:
    
    To hash file 'filename', the following command can be used:
@@ -540,18 +546,8 @@
    The q option reads the input file and XOR's the data with the key stream.
    
    The Q option will XOR the key stream with the file infile and write
-   the result to the file outfile using a process similar to the CBC mode of
-   a block cipher. Because of this, an IV and/or IV file is required as well
-   as a key or key file. The key stream is then re-seeded every r/8-1 bytes
-   with the cipher text of the previous block.
-   
-   An IV MUST only be used ONE time - or else ALL security is lost. If a
-   different file name is always used, the IV could simply be the filename.
-   For example:
-   
-   sha3sum -Jfile-encrypted -x keyfile +Q test file-encrypted
-
-   As long as you NEVER use the filename "file-encrypted" again.
+   the result to the file outfile. The key stream is then re-seeded every
+   r/8-1 bytes with the cipher text of the previous block.
    
    A fingerprint is produced which is used to check against foreries. If the
    fingerprint produced after decryption does not match the fingerprint
@@ -774,11 +770,10 @@
    Use my makefile and only build sha3sum32 and/or sha3sum64 as they do not
    depend on any modifications to the source files (make optimized).
    
-   I also have versions of the Keccak modules that exploit Intel MIC and
+   There are versions of the Keccak modules that exploit Intel MIC and
    options that the Intel(r) C compiler, tools, and primitives give you that are
    not included here. The improved performance is significantly better than
-   any of the optimized versions; most notably tree hashing. All tests were
-   run on an 8 core PC.
+   any of the optimized versions; most notably tree hashing.
    
    This program is easy to modify if it does not meet your usage requirements.
    Everything is parameterized, even the help text. To change any of the

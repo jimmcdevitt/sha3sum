@@ -1,7 +1,7 @@
 /*
- * Module: sha3sum.c     V1.x    Nov 2018         Jim McDevitt
+ * Module: sha3sum.c     V1.x    Feb 2019         Jim McDevitt
  *
- * Copyright (c) 2012-2018 McDevitt Heavy Industries, Ltd. (MHI)
+ * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
  *                   All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software
@@ -196,30 +196,18 @@ static void Process_Key( unsigned int *bytes_used ) {
 		}
 	}
 
-	/* If key(s) were used, hash the ENTIRE buffer
-	   Sort of LIKE hmac signature - Significant
-	   improvement of resultant data.
-	*/
-	if ( *bytes_used > 0 ) {
-		for (i = 0; i < MAXSIZE / 8; i++)
-			binkey[i] ^= 0x36;
-		if ( (Update_error = quick_hash (binkey, MAXSIZE / 8, 1024, 1)) )
-			goto key_error;
-
-		for (i = 0; i < MAXSIZE / 8; i++)
-			binkey[i] ^= 0x5c;
-		if ( (Update_error = quick_hash (binkey, MAXSIZE / 8, 1024, 1)) )
-			goto key_error;
-
-		/* bag all original key material */
-		burn (key_data, sizeof(key_data));
-		burn (binary_key, sizeof(binary_key));
-		if ( !print_key_ok )		/* bag only if -S not used (hidden option) */
-			burn (K, sizeof(K));
-		Update_error = quick_hash (binkey, MAXSIZE / 8, 1024, pim);		/* Slow one-way */
+	/* If key(s) were used, (or -s in the command line), hash the ENTIRE buffer */
+	if ( *bytes_used > 0 || sopt == 1 ) {
+		if ( sopt == 0 ) {	/* Don't clear key material if called from -s option */
+			/* bag all original key material */
+			burn (key_data, sizeof(key_data));
+			burn (binary_key, sizeof(binary_key));
+			if ( !print_key_ok )		/* bag only if -S not used (hidden option) */
+				burn (K, sizeof(K));
+		}
+		/* slow one-way hash */
+		Update_error = quick_hash (binkey, MAXSIZE / 8, 1024, pim);
 	}
-
-	key_error:
 
 	if ( Update_error ) {
 		*bytes_used = 0;
@@ -1932,10 +1920,8 @@ static void optQ(int argc, char **argv, int i) {
  *						key and/or a keyfile. This option demonstrates
  *						duplexing. A key is required input.
  *
- *						This implementation uses a "cbc LIKE process".
- *						Since this a "cbc like" process, the NONCE
- *						is not really a NONCE, ie. reuseable. If none is
- *                      specified, the hashed compliment of the key is used;
+ *						The IV is not really a NONCE, ie. reuseable. If no IV
+ *                      is specified, the hashed compliment of the key is used;
  *						If the IV IS specified, the above is added to the IV
  *						specified.
  *
@@ -2310,6 +2296,7 @@ static void opts(char *optstr) {
 	print_key_ok = 1;
 	print_parameters = 1;
 	print_times = 2;
+	sopt = 1;
 
 	/* calculate time to initialize Keccak as configured via command line*/
 	print_tod();
@@ -2324,6 +2311,7 @@ static void opts(char *optstr) {
 			printf("--F - Initialization error during testing in option %s.\n", optstr);
 			trials = 0;
 			Restore_settings();
+			sopt = 0;
 			return;
 		}
 	}
@@ -2348,6 +2336,7 @@ static void opts(char *optstr) {
 	/* restore settings */
 	Restore_settings();
 	trials = 0;
+	sopt = 0;
 }
 
 static void optS() {
@@ -2562,7 +2551,7 @@ static void optX(int argc, char **argv, int i) {
 
 static void opty(char *optstr) {
 /* set key iteration count
- * -yn where n >= 100000
+ * -yn where n >= 10000
  */
 	uint64_t k = get_int(optstr + 2);
 	if (k < 10000 ) {

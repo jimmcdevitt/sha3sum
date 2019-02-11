@@ -1,7 +1,7 @@
 /*
- * Module: sha3sum.h     V1.x    Nov 2018         Jim McDevitt
+ * Module: sha3sum.h     V1.x    Feb 2019         Jim McDevitt
  *
- * Copyright (c) 2012-2018 McDevitt Heavy Industries, Ltd. (MHI)
+ * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
  *                   All Rights Reserved.
  *
  * This file is a part of sha3sum and is governed by the
@@ -45,10 +45,10 @@ typedef enum { Success = 0,
 *************************************************************************/
 
 const char version_major[] = "1";
-const char version_minor[] = "13";
-const char version_rev[]   = "30";
-const char month[] = "November";
-const char year[] = "2018";
+const char version_minor[] = "14";
+const char version_rev[]   = "31";
+const char month[] = "February";
+const char year[] = "2019";
 
 #ifdef KeccakReference
 	#define Reference
@@ -128,7 +128,7 @@ static void optX(int argc, char **argv, int i);
 static void Save_settings();
 static void randombytes(unsigned char *x,unsigned long long xlen);
 static void Restore_settings();
-static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, const int interations);
+static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, const int iterations);
 static void check_line(char *line);
 static int compute_hex_hashval();
 static int ConvertDigitsToBytes(BitSequence* digits, BitSequence* bytes, int n);
@@ -243,6 +243,7 @@ int MsgPresent = 0;                     /* zero, then one if -m or two if -M cal
 int lopt = 0;                           /* zero, then one if -l used */
 int Lopt = 0;                           /* zero, then one if -L used (squeeze mode) */
 int copt = 0;                           /* one if in optc() */
+int sopt = 0;							/* if one, -s was specified */
 int xopt = 0;                           /* zero, then one if -x used (key file) */
 int Xopt = 0;                           /* zero, then one if -X used (IV file) */
 uint64_t trials = 0;                    /* zero, then number of setups to run if -s used */
@@ -387,13 +388,11 @@ char help_part_2[] =
 #endif
 "\t-sn\tMeasure time to perform n initializations (n optional)\n"
 "\t\ton any provided configuration; n defaults to one.\n"
-/* hidden option */
-#if 0
-	"\t-S\tAllow the key to be printed. This is used by options -c\n"
-	"\t\tand -p. Should only be used for testing purposes or if\n"
-	"\t\tthe key is used for non-security purposes such as a salt.\n"
-	"\t\tThe key printed is specified by -K.\n"
-#endif
+/* can be a hidden option if desired */
+"\t-S\tAllow the key to be printed. This is used by options -c\n"
+"\t\tand -p. Should only be used for testing purposes or if\n"
+"\t\tthe key is used for non-security purposes such as a salt.\n"
+"\t\tThe key printed is specified by -K.\n"
 "\t-t\tTurn on printing of elapsed times and bytes/second\n"
 "\t\tfor each hash as well as the job total.\n"
 "\t-T\tTurn on printing of elapsed times and bytes/second\n"

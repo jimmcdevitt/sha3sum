@@ -1,17 +1,16 @@
 
-   Program: sha3sum.c     V1.x    Nov 2018     Jim McDevitt
+   Program: sha3sum.c     V1.x    Feb 2019     Jim McDevitt
   
-   Copyright (c) 2012-2018 McDevitt Heavy Industries, Ltd. (MHI)
+   Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
                      All Rights Reserved.
   
-    This Program is governed by the GNU general public license Version 3.0,
+    This Program is governed by the GNU general public license Version 2.0,
     the fulltext of which is contained in the file LICENSE included in all
     binary and source code distribution packages.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
+    the Free Software Foundation, version 2.0 ONLY.
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of

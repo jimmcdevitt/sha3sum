@@ -1,4 +1,4 @@
-.TH SHA3SUM "1" "November 2018" "Jim McDevitt, MHI, Ltd." "User Commands"
+.TH SHA3SUM "1" "February 2019" "Jim McDevitt, MHI, Ltd." "User Commands"
 .SH NAME
 .B sha3sum
 NIST SHA3 (Keccak) hash function utility
@@ -185,6 +185,7 @@ and write the result to file \fIoutfile\fR.  \fI+Q\fR encrypts,
 \fI-Q\fR decrypts. Unlike \fI-q\fR, this uses the duplex construct.
 Required input is a key. An IV may be specified. The stream
 is re-seeded every\fB\ r\fR/8 - 1 bytes.
+If no IV is specified, an IV will be generated.
 .TP
 \fB\-rn\fR
 Set rate to\fB\ n\fR (16<=\fB\ n\fR <=1600); default is 1088.
@@ -196,6 +197,12 @@ Set rounds to\fB\ n\fR (1<=\fB\ n\fR <=72); default is 24.
 \fB\-sn\fR
 Measure time to perform\fB\ n\fR initializations (\fB\ n\fR optional)
 on any provided configuration;\fB\ n\fR defaults to one.
+.TP
+\fb\-S\fR
+Allow the key to be printed. This is used by options -c
+and -p. Should only be used for testing purposes or if
+the key is used for non-security purposes such as a salt.
+The key printed is specified by -K.
 .TP
 \fB\-t\fR
 Turn on printing of elapsed times and bytes/second
@@ -242,13 +249,13 @@ Written by Jim McDevitt.
 The Keccak sponge function was designed and implemented by Guido
 Bertoni, Joan Daemen, Michaël Peeters and Gilles Van Assche.
 .SH COPYRIGHT
-Copyright (c) 2012-2014 McDevitt Heavy Industries, Ltd. (MHI)
+Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
 .br
                    All Rights Reserved.
 .br
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
+the Free Software Foundation, version 2.0 only.
+
 There is NO WARRANTY, to the extent permitted by law.

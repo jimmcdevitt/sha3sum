@@ -1,10 +1,10 @@
 /*
- * Module: sha3sum-settings.h     V1.x    Nov 2018     Jim McDevitt
+ * Module: sha3sum-settings.h     V1.x    Feb 2019     Jim McDevitt
  *
- * Copyright (c) 2012-2018 McDevitt Heavy Industries, Ltd. (MHI)
+ * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
  *                   All Rights Reserved.
  *
- * Governed by the GNU general public license Version 3.0, the full
+ * Governed by the GNU general public license Version 2.0 ONLY, the full
  * text of which is contained in the file LICENSE included in all
  * binary and source code distribution packages.
  *
@@ -70,7 +70,7 @@
 #define PRESETS                        8    /* number of presets LoadKeccakPresets() */
 #define FILESPEC_SIZE               1500    /* size of file spec buffer (bytes) */
 #define DISK_BLOCK_SIZE             1024    /* minimum number of bytes to read each disk access - multiple of 8 */
-#define KEY_ITERATIONS            300000    /* number of times to re-hash the key ( >= than 10000) */
+#define KEY_ITERATIONS            100000    /* number of times to re-hash the key ( >= than 10000) */
 
 /*************************************************************************
 **      E N D   O F   C O N F I G U R A T I O N   S E C T I O N         **
