@@ -46,8 +46,8 @@ typedef enum { Success = 0,
 
 const char version_major[] = "1";
 const char version_minor[] = "14";
-const char version_rev[]   = "31";
-const char month[] = "February";
+const char version_rev[]   = "35";
+const char month[] = "March";
 const char year[] = "2019";
 
 #ifdef KeccakReference
@@ -246,6 +246,7 @@ int copt = 0;                           /* one if in optc() */
 int sopt = 0;							/* if one, -s was specified */
 int xopt = 0;                           /* zero, then one if -x used (key file) */
 int Xopt = 0;                           /* zero, then one if -X used (IV file) */
+int yopt = 0;                           /* PIM specified */
 uint64_t trials = 0;                    /* zero, then number of setups to run if -s used */
 int inject_not_init = 1;                /* one, then zero if inject() was initialized */
 int Encoding = 0;                       /* zero, then one if -q or -Q used (encrypting/decrypting) */

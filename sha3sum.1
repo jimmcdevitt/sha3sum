@@ -1,4 +1,4 @@
-.TH SHA3SUM "1" "February 2019" "Jim McDevitt, MHI, Ltd." "User Commands"
+.TH SHA3SUM "1" "March 2019" "Jim McDevitt, MHI, Ltd." "User Commands"
 .SH NAME
 .B sha3sum
 NIST SHA3 (Keccak) hash function utility
@@ -231,6 +231,10 @@ Use the first 1024 bytes of file
 .B xxxx
 as an IV file.  If \fI-j\fR or \fI-J\fR is also used,
 the IV and this file are combined.
+.TP
+\fB\-yn\fR
+Set PIM to\fB\ n\fR (key iterations)
+Default is 100000.
 .PP
 For each file given,
 .B sha3sum

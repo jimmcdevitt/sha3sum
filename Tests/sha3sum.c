@@ -2849,6 +2849,7 @@ static void print_config() {
 		if ( delimitedSuffix != DEFAULT_DELIMITER ) printf("-D%02X\n", delimitedSuffix);
 		if ( key_used == 1 && print_key_ok ) printf("-k%s\n", K);   /* print only if specifically requested */
 		if ( key_used == 2 && print_key_ok ) printf("-K%s\n", K);   /* print only if specifically requested */
+		if ( yopt ) printf("-y%ld\n", pim);
 		burn (K, sizeof(K));
 
 		if ( IV_used == 1 ) printf("-j%s\n", IV);
@@ -2881,6 +2882,7 @@ static void Print_Parameters() {
 			printf("-- d = %7d (digest length in bits)\n",d);
 
 		printf("-- D =      %02X (hex delimiter byte)\n", delimitedSuffix);
+		if (yopt) printf("-- y = %7ld (Number of key iterations)\n", pim);
 #ifdef Reference
 		printf("-- R = %7d (number of rounds)\n", nrRounds);
 #endif
