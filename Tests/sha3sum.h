@@ -1,5 +1,5 @@
 /*
- * Module: sha3sum.h     V1.x    Feb 2019         Jim McDevitt
+ * Module: sha3sum.h     V1.x    May 2019         Jim McDevitt
  *
  * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
  *                   All Rights Reserved.
@@ -17,6 +17,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <ctype.h>
 #include <time.h>
 #include <assert.h>
@@ -45,9 +46,9 @@ typedef enum { Success = 0,
 *************************************************************************/
 
 const char version_major[] = "1";
-const char version_minor[] = "14";
-const char version_rev[]   = "35";
-const char month[] = "March";
+const char version_minor[] = "17";
+const char version_rev[]   = "41";
+const char month[] = "June";
 const char year[] = "2019";
 
 #ifdef KeccakReference
@@ -126,7 +127,9 @@ static void optr(char *optstr);
 static void optx(int argc, char **argv, int i);
 static void optX(int argc, char **argv, int i);
 static void Save_settings();
+#ifndef __mingw__
 static void randombytes(unsigned char *x,unsigned long long xlen);
+#endif
 static void Restore_settings();
 static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, const int iterations);
 static void check_line(char *line);

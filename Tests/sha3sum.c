@@ -1,5 +1,5 @@
 /*
- * Module: sha3sum.c     V1.x    Feb 2019         Jim McDevitt
+ * Module: sha3sum.c     V1.x    May 2019         Jim McDevitt
  *
  * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
  *                   All Rights Reserved.
@@ -917,7 +917,7 @@ static void duplexing(unsigned char *sigma, unsigned int sigmaBitLength,
 		delimitedSigmaEnd = sigma[sigmaByteLenCeiling - 1] | (1 << (sigmaBitLength % 8));
 	}
 	else
-		delimitedSigmaEnd = 0x01;
+		delimitedSigmaEnd = NO_SUFFIX;
 
 	memset(Z, filler, sizeof(Z));
 
@@ -1398,7 +1398,17 @@ static void optf(int argc, char **argv, int i) {
 			bits_are_needed -= datalen;
 		}
 
-		/* Print out the files fingerprint. */
+		/* Print out pseudo HMAC of the files fingerprint. */
+		for (i = 0; i < WIDTH / 8; i++)
+			Duplex_out[i] ^= 0x36;
+		Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1);
+		if ( Update_error ) goto error;
+
+		for (i = 0; i < WIDTH / 8; i++)
+			Duplex_out[i] ^= 0x5c;
+		Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1);
+		if ( Update_error ) goto error;
+
 		printf("-- Fingerprint of '%s':\n-- ", argv[i + 1]);
 		PrintBuffer (Duplex_out, max(min(C/16, BlockSize), 1));
 	}
@@ -2194,7 +2204,17 @@ error:
 	Initialized = 1;							/* reset */
 	Print_Parameters();                         /* print parameters if requested */
 
-	/* print out the fingerprint */
+	/* print out the pseudo HMAC of the files fingerprint */
+	for (i = 0; i < WIDTH / 8; i++)
+		Duplex_out[i] ^= 0x36;
+	Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1);
+	if ( Update_error ) goto error;
+
+	for (i = 0; i < WIDTH / 8; i++)
+		Duplex_out[i] ^= 0x5c;
+	Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1);
+	if ( Update_error ) goto error;
+
 	printf("-- Fingerprint of '%s':\n-- ", GenIVfile);
 	PrintBuffer (Duplex_out, max(min(C / 16, BlockSize), 1));
 	burn (Duplex_out, WIDTH / 8);	/* zero the accumulator */
@@ -2359,9 +2379,11 @@ static void optT() {
 static void optu() {
 /* generate a seed of size SEEDSIZE if -u is given as a command-line argument */
 	int i;
+	uint32_t offset;
 	static int first_seed = 1;
-	unsigned int ran;
-	static unsigned char rseed0[SEEDSIZE / 8], rseed1[SEEDSIZE / 8], rseedt[SEEDSIZE / 8] ;
+	int ran, ran1;
+	static unsigned char rseed0[SEEDSIZE / 8], rseed1[SEEDSIZE / 8];
+	unsigned char ranseed[32 / 8];
 	static unsigned char NullVector[SEEDSIZE / 8];
 
 	/* number of SEEDSIZE / 8 byte blocks to poll from o/s */
@@ -2369,15 +2391,27 @@ static void optu() {
 	int polling = SEED_HASH_COUNT;
 	seed_used = 0;
 
-	/* get the first batch of random data */
+	/* get the first batch of random data.
+	   ranseed used intentially without init. */
 	if ( first_seed ) {
 		burn (NullVector, SEEDSIZE / 8);
+#ifdef __mingw__
+		srand(time(NULL)); /* initialize */
+		ran = rand(); /* throw away */
+		for (offset=0; offset < SEEDSIZE / 8; offset += sizeof(ranseed)) {
+			ran = rand();
+			ran1 = rand();
+			ranseed [0] ^= (ran1 >> 8) & 0xFF;
+			ranseed [1] ^= ran1 & 0xFF;
+			ranseed [2] ^= (ran >> 8) & 0xFF;
+			ranseed [3] ^= ran & 0xFF;
+			memcpy(rseed0 + offset, ranseed, sizeof(ranseed));
+		}
+#else
 		randombytes (rseed0, SEEDSIZE / 8); /* throw away */
-		memcpy(rseed0, rseedt, SEEDSIZE / 8);
 		randombytes (rseed0, SEEDSIZE / 8);
-
-		if ( ( memcmp(rseed0, NullVector, SEEDSIZE / 8) == 0 ) ||
-			( memcmp(rseed0, rseedt, SEEDSIZE / 8) == 0 ) ) {
+#endif
+		if ( memcmp(rseed0, NullVector, SEEDSIZE / 8) == 0 ) {
 			Update_error = 9;
 			goto error;
 		}
@@ -2386,22 +2420,30 @@ static void optu() {
 
 	do {
 		/* Get random data from the O/S. If it is the same as the previous
-		 * seed generated or NULL, the LAs paid a visit. */
-		randombytes (rseed, SEEDSIZE / 8);
-
-		if ( memcmp(rseed, NullVector, SEEDSIZE / 8) == 0 ) {
-			Update_error = 9;
-			goto error;
+		 * seed generated or NULL, a big problem. */
+#ifdef __mingw__
+		for (offset=0; offset < SEEDSIZE / 8; offset += sizeof(ranseed)) {
+			ran = rand();
+			ran1 = rand();
+			ranseed [0] ^= (ran1 >> 8) & 0xFF;
+			ranseed [1] ^= ran1 & 0xFF;
+			ranseed [2] ^= (ran >> 8) & 0xFF;
+			ranseed [3] ^= ran & 0xFF;
+			memcpy(rseed + offset, ranseed, sizeof(ranseed));
 		}
-
-		/* are we moving? */
-		if ( memcmp(rseed0, rseed, SEEDSIZE / 8) == 0 ) {
+#else
+		randombytes (rseed, SEEDSIZE / 8);
+#endif
+		/* exit if null or the same as last seed */
+		if ( memcmp(rseed, NullVector, SEEDSIZE / 8) == 0 || 
+		( memcmp(rseed0, rseed, SEEDSIZE / 8) == 0 ) ) {
 			Update_error = 9;
 			goto error;
 		}
 
 		/* save current seed as previous seed
-		 * and accumulate */
+		 * and accumulate. rseed1 is intentially used
+		 * uninitialized */
 		memcpy(rseed0, rseed, SEEDSIZE / 8);
 		for (i = 0; i < SEEDSIZE / 8; i++)
 			rseed1[i] ^= rseed[i];
@@ -2432,7 +2474,7 @@ static void optv() {
 	printf("Environment: %s, %s\n", OS, CC);
 	printf("Copyright (c) %s McDevitt Heavy Industries, Ltd. (MHI) Philippines.\n", year);
 	printf("This is free software, and you are welcome to redistribute it, governed\n");
-	printf("by the GNU general public license, Version 3.0.\n");
+	printf("by the GNU general public license, Version 2.0 only.\n");
 }
 
 static void optx(int argc, char **argv, int i) {
@@ -2618,6 +2660,7 @@ static void Restore_settings() {
 	IV_processed = save_IVP;
 }
 
+#ifndef __mingw__
 static void randombytes(unsigned char *x,unsigned long long xlen) {
 /* Thank you to D. J. Bernstein for this (nacl)
  */
@@ -2634,7 +2677,6 @@ static void randombytes(unsigned char *x,unsigned long long xlen) {
 
 	while (xlen > 0) {
 		i = xlen;
-
 		i = read(rd,x,i);
 		if (i < 1) {
 			sleep(1);
@@ -2645,6 +2687,7 @@ static void randombytes(unsigned char *x,unsigned long long xlen) {
 		xlen -= i;
 	}
 }
+#endif
 
 static void check_line(char *line) {
 	/* print filename if its hash doesn't agree with what's given in line
@@ -3010,13 +3053,13 @@ static void LoadKeccakPresets() {
 	settings[1].R     =  DEFAULT_ROUNDS;        settings[4].R     =  DEFAULT_ROUNDS;        settings[7].R     =  DEFAULT_ROUNDS;
 	strncpy(settings[1].tag, "VLO", s);         strncpy(settings[4].tag, "", s);            strncpy(settings[7].tag, "", s);
 
-			/* SHA3 - 224 */                        /* KECCAK */
-	settings[2].d     =        224;             settings[5].d     =        288;
-	settings[2].C     =        448;             settings[5].C     =        576;
-	settings[2].D     =    NIST_D2;             settings[5].D     =       0x01;
-	strncpy(settings[2].desig, "SHA3-224", s);  strncpy(settings[5].desig, "Keccak  ", s);
-	settings[2].R     =  DEFAULT_ROUNDS;        settings[5].R     =  DEFAULT_ROUNDS;
-	strncpy(settings[2].tag, "", s);            strncpy(settings[5].tag, "", s);
+			/* SHA3 - 224 */                        /* KECCAK */                            /* Etherium */
+	settings[2].d     =        224;             settings[5].d     =        288;             settings[8].d     =        256;
+	settings[2].C     =        448;             settings[5].C     =        576;             settings[8].C     =        512;
+	settings[2].D     =    NIST_D2;             settings[5].D     =  NO_SUFFIX;             settings[8].D     =   NO_SUFFIX;
+	strncpy(settings[2].desig, "SHA3-224", s);  strncpy(settings[5].desig, "Keccak  ", s);  strncpy(settings[8].desig, "Etherium", s);
+	settings[2].R     =  DEFAULT_ROUNDS;        settings[5].R     =  DEFAULT_ROUNDS;        settings[8].R     =  DEFAULT_ROUNDS;
+	strncpy(settings[2].tag, "", s);            strncpy(settings[5].tag, "", s);            strncpy(settings[8].tag, "", s);
 }
 
 /*************************************************************************

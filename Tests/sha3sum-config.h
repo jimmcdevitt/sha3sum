@@ -1,5 +1,5 @@
 /*
- * Module: sha3sum-settings.h     V1.x    Feb 2019     Jim McDevitt
+ * Module: sha3sum-config.h     V1.x    May 2019     Jim McDevitt
  *
  * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
  *                   All Rights Reserved.
@@ -14,31 +14,14 @@
   #define KECCAK_SETTINGS_H_S
 
 /* This is for mingw on windows */
-/*
 #ifndef __mingw__
   #define  __mingw__
 #endif
-#ifndef __linux__
-  #define  __linux__
-#endif
-*/
 
 /* Use this for Linux */
+/*
 #ifndef __linux__
   #define  __linux__
-#endif
-
-/* This is for windows 32 bit */
-/*
-#ifndef _WIN32
-  #define  _WIN32
-#endif
-*/
-
-/* Use this for 64 bit windows */
-/*
-#ifndef _WIN64
-  #define  _WIN64
 #endif
 */
 
@@ -55,6 +38,7 @@
 #define NIST_D1                     0x1F    /* NIST domain separator #1 */
 #define NIST_D2                     0x06    /* NIST domain separator #2 */
 #define QH_DS                       0x13    /* delimiter for quick hash ONLY. This constant reserved from any other use */
+#define NO_SUFFIX                   0x01    /* used for Etherium */
 #define DEFAULT_DELIMITER        NIST_D2    /* default delimiter (1 byte), diversifier, or domain separator or ... */
 #define MAXROUNDS                     72    /* maximum number of rounds - see optR() */
 #define MAXSIZE                    16384    /* maximum length in bits for all parameters (8192 minimum) */
@@ -67,7 +51,7 @@
 #define SEEDSIZE                   WIDTH    /* size of seed in bits (-u) */
 #define SEED_HASH_COUNT                3    /* initial number of times to poll the O/S for random data during init */
 #define INJECTION_THRESHOLD       100000    /* number of bytes processed duplexing to re-seed the sponge */
-#define PRESETS                        8    /* number of presets LoadKeccakPresets() */
+#define PRESETS                        9    /* number of presets LoadKeccakPresets() */
 #define FILESPEC_SIZE               1500    /* size of file spec buffer (bytes) */
 #define DISK_BLOCK_SIZE             1024    /* minimum number of bytes to read each disk access - multiple of 8 */
 #define KEY_ITERATIONS            100000    /* number of times to re-hash the key ( >= than 10000) */
