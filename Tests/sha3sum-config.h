@@ -14,16 +14,16 @@
   #define KECCAK_SETTINGS_H_S
 
 /* This is for mingw on windows */
+/*
 #ifndef __mingw__
   #define  __mingw__
 #endif
+*/
 
 /* Use this for Linux */
-/*
 #ifndef __linux__
   #define  __linux__
 #endif
-*/
 
 /*************************************************************************
 **      S H A 3 S U M   C O N F I G U R A T I O N   S E C T I O N       **
