@@ -638,10 +638,9 @@ static void hash_final() {
 
 		/* if -o or -O used, append the requested number
 		 * of zero bits or bytes. Useful to determine how many
-		 * bits or bytes the zero padding needs to be to get
-		 * the proper delay for the cpu that this is running on.
+		 * bits or bytes desired for zero padding.
 		 * nbytes is the number of zero bytes we need to pad the
-		 * message by */
+		 * message by. This affects a slowdown as well. */
 		if (oopt || Oopt) {
 			if (oopt)
 				nbytes = oopt / 8;
@@ -1777,10 +1776,7 @@ static void optN(char *optstr) {
 static void opto(char *optstr) {
 /* slow n-bit one-way function
  * -on sets number of bits to n,
- * (n >= 1) to append to the data
- * n should be sufficiently large
- * to get the desired slow down
- * for this host.
+ * (n >= 1) to append to the data.
  */
 	oopt = get_int(optstr + 2);
 	if (oopt == 0) {
@@ -1795,9 +1791,6 @@ static void optO(char *optstr) {
 /* slow n-Byte one-way function
  * -On sets number of Bytes to n,
  * (n >= 1) to append to the data.
- * n should be sufficiently large
- * to get the desired slow down
- * for this host.
  */
 	Oopt = get_int(optstr + 2);
 	if (Oopt == 0) {

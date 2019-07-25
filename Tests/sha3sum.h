@@ -47,8 +47,8 @@ typedef enum { Success = 0,
 
 const char version_major[] = "1";
 const char version_minor[] = "17";
-const char version_rev[]   = "41";
-const char month[] = "June";
+const char version_rev[]   = "43";
+const char month[] = "July";
 const char year[] = "2019";
 
 #ifdef KeccakReference

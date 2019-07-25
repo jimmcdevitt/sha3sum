@@ -44,7 +44,7 @@
 #define MAXSIZE                    16384    /* maximum length in bits for all parameters (8192 minimum) */
 #define DEFAULT_SQUEEZE             8192    /* default size to squeeze (bits) */
 #define KEY_SIZE                      64    /* key size in bytes */
-#define KEY_FILE_SIZE                512    /* maximum bytes to read from key file */
+#define KEY_FILE_SIZE               1024    /* maximum bytes to read from key file */
 #define IV_SIZE                     1024    /* maximum initialization vector (IV) size in bytes */
 #define IV_FILE_SIZE                1024    /* maximum bytes to read from IV file */
 #define MSG_SIZE                    1024    /* maximum binary message size in bytes */
