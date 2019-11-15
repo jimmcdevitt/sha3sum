@@ -2377,7 +2377,7 @@ static void optu() {
 	int ran, ran1;
 	static unsigned char rseed0[SEEDSIZE / 8], rseed1[SEEDSIZE / 8];
 	unsigned char ranseed[32 / 8];
-	static unsigned char NullVector[SEEDSIZE / 8];
+	static unsigned char NullVector[SEEDSIZE / 8], HighVector[SEEDSIZE / 8];
 
 	/* number of SEEDSIZE / 8 byte blocks to poll from o/s */
 	/* as well the number of times to hash it */
@@ -2385,15 +2385,27 @@ static void optu() {
 	seed_used = 0;
 
 	/* get the first batch of random data.
-	   ranseed used intentially without init. */
+	   ranseed used intentially without init.
+	   Because of AMD, rdrand Always == 0xFFFFFFFFFFFFFFFF
+	   Make sure it's not all 1's */
 	if ( first_seed ) {
 		burn (NullVector, SEEDSIZE / 8);
+		for (i=0; i < SEEDSIZE / 8; i++)
+			HighVector[i] = 0xFF;
 #ifdef __mingw__
 		srand(time(NULL)); /* initialize */
 		ran = rand(); /* throw away */
 		for (offset=0; offset < SEEDSIZE / 8; offset += sizeof(ranseed)) {
 			ran = rand();
 			ran1 = rand();
+			if ( ran == 0
+				|| ran == 0xFFFFFFFFFFFFFFFF
+				|| ran1 == 0
+				|| ran1 == 0xFFFFFFFFFFFFFFFF ) {
+				Update_error = 9;
+				goto error;
+			}
+
 			ranseed [0] ^= (ran1 >> 8) & 0xFF;
 			ranseed [1] ^= ran1 & 0xFF;
 			ranseed [2] ^= (ran >> 8) & 0xFF;
@@ -2404,7 +2416,8 @@ static void optu() {
 		randombytes (rseed0, SEEDSIZE / 8); /* throw away */
 		randombytes (rseed0, SEEDSIZE / 8);
 #endif
-		if ( memcmp(rseed0, NullVector, SEEDSIZE / 8) == 0 ) {
+		if ( memcmp(rseed0, NullVector, SEEDSIZE / 8) == 0
+			|| memcmp(rseed0, HighVector, SEEDSIZE / 8) == 0 ) {
 			Update_error = 9;
 			goto error;
 		}
@@ -2413,7 +2426,7 @@ static void optu() {
 
 	do {
 		/* Get random data from the O/S. If it is the same as the previous
-		 * seed generated or NULL, a big problem. */
+		 * seed generated, a big problem. */
 #ifdef __mingw__
 		for (offset=0; offset < SEEDSIZE / 8; offset += sizeof(ranseed)) {
 			ran = rand();
@@ -2427,9 +2440,8 @@ static void optu() {
 #else
 		randombytes (rseed, SEEDSIZE / 8);
 #endif
-		/* exit if null or the same as last seed */
-		if ( memcmp(rseed, NullVector, SEEDSIZE / 8) == 0 || 
-		( memcmp(rseed0, rseed, SEEDSIZE / 8) == 0 ) ) {
+		/* exit if the same as last seed - big problem */
+		if ( memcmp(rseed0, rseed, SEEDSIZE / 8) == 0 ) { 
 			Update_error = 9;
 			goto error;
 		}

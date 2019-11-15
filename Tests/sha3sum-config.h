@@ -17,6 +17,7 @@
 /*
 #ifndef __mingw__
   #define  __mingw__
+  #define  __linux__
 #endif
 */
 

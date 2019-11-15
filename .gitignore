@@ -1,5 +1,5 @@
 bin/
-.settings/language.settings.xml
+.settings/
 .cproject
 .project
 .vscode/

@@ -100,11 +100,11 @@ CFLAGS_REFERENCE = -DKeccakReference -O -Wno-format-security
 
 CFLAGS_REFERENCE32BI = -DKeccakReference32BI -O -Wno-format-security
 
-CFLAGS_OPTIMIZED_32 = -DInPlace32BI -Wno-format-security -fomit-frame-pointer -O3 -g0 -march=native -mtune=native
+CFLAGS_OPTIMIZED_32 = -DInPlace32BI -fno-dse -Wno-format-security -fomit-frame-pointer -O3 -g0 -march=native -mtune=native
 
-CFLAGS_COMPACT = -DCompact -Wno-format-security -fomit-frame-pointer -O3 -g0 -march=native -mtune=native
+CFLAGS_COMPACT = -DCompact -fno-dse -Wno-format-security -fomit-frame-pointer -O3 -g0 -march=native -mtune=native
 
-CFLAGS_OPTIMIZED_64 = -DOptimized64 -Wno-format-security -fomit-frame-pointer -O3 -g0 -march=native -mtune=native
+CFLAGS_OPTIMIZED_64 = -DOptimized64 -fno-dse -Wno-format-security -fomit-frame-pointer -O3 -g0 -march=native -mtune=native
 
 VPATH = Common/ Constructions/ KeccakF-1600/ KeccakF-1600/Optimized/ KeccakF-1600/Reference/ KeccakF-1600/Compact/ Modes/ Tests/
 
