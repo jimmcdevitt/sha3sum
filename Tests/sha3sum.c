@@ -1,5 +1,6 @@
+/* SPDX-License-Identifier: GPL-2.0-only AND GPL-CC-1.0 */
 /*
- * Module: sha3sum.c     V1.x    May 2019         Jim McDevitt
+ * Module: sha3sum.c     V1.x    November 2019         Jim McDevitt
  *
  * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
  *                   All Rights Reserved.
@@ -7,8 +8,9 @@
  * Permission to use, copy, modify, and/or distribute this software
  * and its documentation for NON-COMMERCIAL and/or COMMERCIAL
  * purposes is hereby granted governed by the GNU general public
- * license Version 2.0 ONLY, the full text of which is contained in the
- * file LICENSE included in all binary and source code distribution
+ * license Version 2.0 ONLY AND the GPL Cooperation Commitment-
+ * GPL-CC-1.0; the full text of which is contained in the file
+ * LICENSE included in all binary and source code distribution
  * packages.
  *
  * MHI MAKES NO REPRESENTATIONS OR WARRANTIES ABOUT THE SUITABILITY OF
@@ -171,7 +173,7 @@ static void PrintBuffer(unsigned char *buffer, int size) {
 
 static void Process_Key( unsigned int *bytes_used ) {
 /* Process key and keyfile */
-	unsigned int i, err;
+	int i;
 	*bytes_used = 0;
 	Update_error = 0;
 
@@ -277,10 +279,10 @@ static int inject(unsigned char *buffer, unsigned int size, int init) {
 		rbits = r - 8;
 		rbytes = rbits >> 3;
 		limit = min(sizeof(state), sizeof(Duplex_out));
-		inject_not_init = 0;
+		init = 0;
 	}
 
-	if ( inject_not_init ) {
+	if ( !init ) {
 		printf("--F - Error: injection failure, never initialized.\n");
 		return (Fail);
 	}
@@ -444,9 +446,9 @@ static void print_time() {
 	if (elapsed_time <= 0.0) {
 		printf("-- Elapsed time too short to measure...\n");
 		if (absorb_calls )
-			printf("-- Absorption calls made = %ld\n", absorb_calls);
+			printf("-- Absorption calls made = %lld\n", absorb_calls);
 		if ( squeeze_calls )
-			printf("-- Squeeze calls made = %ld\n", squeeze_calls);
+			printf("-- Squeeze calls made = %lld\n", squeeze_calls);
 	}
 	else {
 		if (elapsed_time >= (double)0.0)
@@ -455,7 +457,7 @@ static void print_time() {
 			printf("-- Elapsed time = ** Too short to measure **\n");
 
 		if (absorb_calls) {
-			printf("-- Absorption calls made = %ld\n", absorb_calls);
+			printf("-- Absorption calls made = %lld\n", absorb_calls);
 			if ( (bytes / elapsed_time / 1000000.0) > 1.0 ) {
 				printf("-- Megabytes absorbed per second = %g\n",
 						(bytes/elapsed_time) / 1000000.0);
@@ -464,7 +466,7 @@ static void print_time() {
 			}
 		}
 		if ( squeeze_calls ) {
-			printf("-- Squeeze calls made = %ld\n", squeeze_calls);
+			printf("-- Squeeze calls made = %lld\n", squeeze_calls);
 			if ( (sqbytes / elapsed_time / 1000000.0) > 1.0 ) {
 				printf("-- Megabytes squeezed per second = %g\n",
 						(sqbytes / elapsed_time) / 1000000.0);
@@ -517,7 +519,6 @@ static void print_time() {
 static void hash_init() {
 /* initialize state */
 	int err;
-	int i = 0;
 
 	/* check parameters for saneness */
 	if ( MsgPresent == 0 && lopt ) {   /* bit length specified (-l) but no message (-m) */
@@ -526,7 +527,7 @@ static void hash_init() {
 	}
 
 	if ( kb_count > 1 && !Lopt ) {   /* -e was specified but the switch -Ln was not */
-		printf("--W - Option -e%ld ignored; missing option -Ln.\n", kb_count);
+		printf("--W - Option -e%lld ignored; missing option -Ln.\n", kb_count);
 		kb_count = 1;
 	}
 
@@ -631,7 +632,6 @@ static void hash_final() {
  */
 	int err;
 	uint64_t nbytes, part_len;
-	unsigned int bytes_used;
 
 	/* make sure it's OK to be here. If so; */
 	if ( Initialized && !Finalized && Update_error == 0 ) {
@@ -701,7 +701,6 @@ static mode hash_squeeze() {
 * bits. Squeeze as much as you like. Just like Charmin.
 */
 	mode err;
-	unsigned int i;
 	if ( Finalized && Initialized && Update_error == 0 ) {
 		err = (mode) Keccak_HashSqueeze(&hash, hashval, (DataLength) squeezedOutputLength);
 		if ( err )
@@ -833,8 +832,7 @@ static void Duplex_Queue( unsigned char *buffer, unsigned int size, unsigned cha
 static void duplex_init() {
 /* initialize duplex state */
 	unsigned char bit_bucket[WIDTH / 8];
-	unsigned int i, err, offset;
-	unsigned int datalen = 0;
+	unsigned int err;
 	init_counters_flags();
 
 	/* Process key(s) if any. */
@@ -1173,18 +1171,18 @@ static void optD(char *optstr) {
  */
 	BitSequence bits;
 	BitSequence dd[] = "00";
-	int hexmsglen = 0;
+	int hexmsgl = 0;
 	char *p = optstr + 2;
 
 	if ( *p == 0x00 || *(p+1) == 0x00 ) {
 		dd[1] = 0x31;
 		if ( *p == 0x00 )
-			hexmsglen = 2;
+			hexmsgl = 2;
 		else
-			hexmsglen = 1;
+			hexmsgl = 1;
 	}
 
-	while ( *p && hexmsglen < 2 ) dd[hexmsglen++] = *p++;
+	while ( *p && hexmsgl < 2 ) dd[hexmsgl++] = *p++;
 
 	if ( ConvertDigitsToBytes(dd, &bits, 1) ) {
 		printf("--I - Changed delimiter from %s to %02x; bad hex digit.\n", dd, DEFAULT_DELIMITER);
@@ -1236,7 +1234,6 @@ static void optf(int argc, char **argv, int i) {
 	uint64_t FileSize, bits_are_needed, squeeze;
 	uint64_t inject_time = 0;
 	char *sw = argv[i];
-	char blnk[] = "Z";
 	mode Sponge;	/* duplex(+) or squeeze (-) */
 	stat_file = NULL;
 
@@ -1288,7 +1285,6 @@ static void optf(int argc, char **argv, int i) {
 		/* Set duplex block size. Maximum input size
 		 * is r-2 bits; we are using r-8 bits. */
 		BlockSize = r/8 - 1;
-		int inject_not_init = 1; /* make sure injection mechanism gets initialized */
 	}
 
 	/* amount of data to be written to the file */
@@ -1326,6 +1322,7 @@ static void optf(int argc, char **argv, int i) {
 		/* initialize and set up injection mechanism.
 		 * The number of bytes generated before new material is injected
 		 * is currently every 1e5 bytes or greater. */
+		/*/
 		duplexing ( 0, 0, stream0, BlockSize ); /* capture initial stream */
 		if ( Update_error == 0 ) {
 			/* set up and give first injection */
@@ -1426,7 +1423,7 @@ static void optf(int argc, char **argv, int i) {
 		file_output++;
 	}
 
-	printf ("-- Size of file '%s' in bytes: %ld\n\n", outfile, FileSize);
+	printf ("-- Size of file '%s' in bytes: %lld\n\n", outfile, FileSize);
 	file_created = 0;
 	print_time();   /* print timing info if requested */
 	return;
@@ -1915,7 +1912,6 @@ static void optq(int argc, char **argv, int i) {
 	if ( !err ) file_output++;	/* bump the output file counter */
 }
 
-char *fn;
 static void optQ(int argc, char **argv, int i) {
 /* +/-Q infile outfile  Encrypt(+) or Decrypt(-) a file. Stream cipher.
  *						Like -q this option reads infile and XORs
@@ -1957,8 +1953,8 @@ static void optQ(int argc, char **argv, int i) {
 	FILE *src_file;
 	FILE *crypt_file;
 	unsigned char key_stream[WIDTH / 8], KIV[(MAXSIZE / 8)];
-	unsigned int j, k, l, m;
-	int bytes_used, offset, bytes;
+	unsigned int j, l;
+	int offset, bytes;
 	unsigned int buffer_not_empty, datalength;
 
 	/* Initialize and set mode -- Encrypt(+) or Decrypt(-) */
@@ -2002,7 +1998,6 @@ static void optQ(int argc, char **argv, int i) {
 	Initialized = 0;
 	print_tod();			/* print time of day if not already printed */
 	start_timer();			/* start the clock */
-	inject_not_init = 1;	/* make sure the state gets reset for the injection mechanism */
 
 	/* Process key */
 	if ( !Key_processed ) Process_Key( &Key_bytes_used );
@@ -2493,7 +2488,6 @@ static void optx(int argc, char **argv, int i) {
  */
 	FILE *key_file;
 	uint64_t bytes;
-	int j;
 	xopt = 0;
 
 	if (i == argc-1) {
@@ -2515,7 +2509,7 @@ static void optx(int argc, char **argv, int i) {
 	}
 
 	if ( bytes < KEY_FILE_SIZE ) {
-		printf("--I - Key file %s only contained %ld byte", argv[i+1], bytes);
+		printf("--I - Key file %s only contained %lld byte", argv[i+1], bytes);
 		if ( bytes>1 )
 			printf("s.\n");
 		else
@@ -2550,7 +2544,6 @@ static void optX(int argc, char **argv, int i) {
  */
 	FILE *IV_file;
 	uint64_t bytes;
-	int j;
 	Xopt = 0;
 
 	if (i == argc-1) {
@@ -2572,7 +2565,7 @@ static void optX(int argc, char **argv, int i) {
 	}
 
 	if ( bytes < IV_FILE_SIZE ) {
-		printf("--I - IV file %s only contained %ld byte", argv[i+1], bytes);
+		printf("--I - IV file %s only contained %lld byte", argv[i+1], bytes);
 		if ( bytes>1 )
 			printf("s.\n");
 		else
@@ -2837,7 +2830,7 @@ static void print_hash(char *filename) {
 
 	if ( Lopt ) {   /* If here, arbitrary length output - squeeze */
 		if ( kb_count > 1 ) {
-			printf("\n-- %ld blocks", kb_count);
+			printf("\n-- %lld blocks", kb_count);
 			printf(" of %d byte", squeezedOutputLength / 8);
 			if ( squeezedOutputLength / 8 > 1 ) printf("s");
 			printf(" output from the hash of %s\n", filename );
@@ -2897,13 +2890,13 @@ static void print_config() {
 		if ( delimitedSuffix != DEFAULT_DELIMITER ) printf("-D%02X\n", delimitedSuffix);
 		if ( key_used == 1 && print_key_ok ) printf("-k%s\n", K);   /* print only if specifically requested */
 		if ( key_used == 2 && print_key_ok ) printf("-K%s\n", K);   /* print only if specifically requested */
-		if ( yopt ) printf("-y%ld\n", pim);
+		if ( yopt ) printf("-y%lld\n", pim);
 		burn (K, sizeof(K));
 
 		if ( IV_used == 1 ) printf("-j%s\n", IV);
 		if ( IV_used == 2 ) printf("-J%s\n", IV);
-		if (oopt) printf("-o%ld\n", oopt);
-		if (Oopt) printf("-O%ld\n", Oopt);
+		if (oopt) printf("-o%lld\n", oopt);
+		if (Oopt) printf("-O%lld\n", Oopt);
 #ifdef Reference
 		if ( nrRounds != DEFAULT_ROUNDS ) printf("-R%d\n", nrRounds);
 #endif
@@ -2924,18 +2917,18 @@ static void Print_Parameters() {
 		printf("-- r = %7d (bit rate)\n", r);
 		if ( Lopt ) {
 			printf("-- L = %7d (digest length per squeeze in bits)\n", squeezedOutputLength);
-			if (kb_count > 1) printf("-- e = %7ld (number of times to squeeze)\n", kb_count);
+			if (kb_count > 1) printf("-- e = %7lld (number of times to squeeze)\n", kb_count);
 		}
 		else
 			printf("-- d = %7d (digest length in bits)\n",d);
 
 		printf("-- D =      %02X (hex delimiter byte)\n", delimitedSuffix);
-		if (yopt) printf("-- y = %7ld (Number of key iterations)\n", pim);
+		if (yopt) printf("-- y = %7lld (Number of key iterations)\n", pim);
 #ifdef Reference
 		printf("-- R = %7d (number of rounds)\n", nrRounds);
 #endif
-		if (oopt) printf("-- o = %7ld (bits used for one-way function)\n", oopt);
-		if (Oopt) printf("-- O = %7ld (bytes used for one-way function)\n", Oopt);
+		if (oopt) printf("-- o = %7lld (bits used for one-way function)\n", oopt);
+		if (Oopt) printf("-- O = %7lld (bytes used for one-way function)\n", Oopt);
 		if (xopt) printf("-- x = '%s' (key file - %d bytes)\n", KeyFileSpec, KEY_FILE_SIZE);
 		if (Xopt) printf("-- X = '%s' (Initialization Vector file - %d bytes)\n", IVFileSpec, IV_FILE_SIZE);
 		/* -gn selects either binary or ASCII hex output and
@@ -3103,7 +3096,7 @@ int main(int argc, char **argv) {
 				continue;
 			}
 
-			switch ( argv[i][1] ) {	                                    /*      Options:            */
+			switch ( argv[i][1] ) {	                                   /*      Options:            */
 				case 'b': optb(argv[i]); print_hash(argv[i]); break;   /* hash a b bit dummy file  */
 				case 'B': optB(argv[i]); print_hash(argv[i]); break;   /* hash a B byte dummy file */
 				case 'c': optc(argc,argv,i); i++; break;               /* check files for changes  */
@@ -3113,14 +3106,14 @@ int main(int argc, char **argv) {
 				case 'e': opte(argv[i]); break;                        /* # of blocks to print of size -Ln */
 				case 'f': optf(argc,argv,i); i++; break;               /* binary or ASCII hex output to a file */
 				case 'g': optg(argv[i]); break;                        /* if zero, a binary file is created; if one, */
-				case 'h':                                               /*  a ASCII hex file accept both h and H */
+				case 'h':                                              /*  a ASCII hex file accept both h and H */
 				case 'H': opth(); break;                               /*  to print help text */
-#ifdef Reference                                                        /*  */
+#ifdef Reference                                                       /*  */
 				case 'i': opti(argv[i]); break;                        /* level to print of intermediate values */
-#else                                                                   /* */
+#else
 				case 'i': printf("--W - Option -i not implemented in this version; -i ignored.\n");
-						break;                                          /* wrong version for -i */
-#endif                                                                  /* */
+						break;                                         /* wrong version for -i */
+#endif
 				case 'j': optj(argv[i]); break;                        /* binary IV */
 				case 'J': optJ(argv[i]); break;                        /* ASCII IV */
 				case 'k': optk(argv[i]); break;                        /* binary key */
@@ -3137,12 +3130,12 @@ int main(int argc, char **argv) {
 				case 'q': optq(argc,argv,i); i += 2; break;            /* apply key stream to a file */
 				case 'Q': optQ(argc,argv,i); i += 2; break;            /* apply key stream to a file using duplexing */
 				case 'r': optr(argv[i]); break;                        /* rate */
-#ifdef Reference                                                        /* */
+#ifdef Reference
 				case 'R': optR(argv[i]); break;                        /* number of rounds */
-#else                                                                   /* */
+#else
 				case 'R': printf("--W - Option -R not implemented in this version; -R ignored.\n");
-						break;                                          /* wrong version for -R */
-#endif                                                                  /* */
+						break;                                         /* wrong version for -R */
+#endif
 				case 's': opts(argv[i]); break;                        /* perform hash initialization trials */
 				case 'S': optS(); break;                               /* safe to print key */
 				case 't': optt(); break;                               /* print timing data summary at EOJ */

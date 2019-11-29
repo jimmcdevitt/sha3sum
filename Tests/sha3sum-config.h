@@ -1,11 +1,14 @@
+/* SPDX-License-Identifier: GPL-2.0-only AND GPL-CC-1.0 */
 /*
- * Module: sha3sum-config.h     V1.x    May 2019     Jim McDevitt
+ * Module: sha3sum-config.h     V1.x    Nov 2019     Jim McDevitt
  *
  * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
  *                   All Rights Reserved.
  *
- * Governed by the GNU general public license Version 2.0 ONLY, the full
- * text of which is contained in the file LICENSE included in all
+ * This file is a part of sha3sum and is governed by the
+ * GNU general public license Version 2.0 ONLY AND
+ * the GPL Cooperation Commitment - GPL-CC-1.0; the full text
+ * of which is contained in the file LICENSE included in all
  * binary and source code distribution packages.
  *
  */
@@ -17,7 +20,6 @@
 /*
 #ifndef __mingw__
   #define  __mingw__
-  #define  __linux__
 #endif
 */
 

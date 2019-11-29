@@ -1,12 +1,14 @@
+/* SPDX-License-Identifier: GPL-2.0-only AND GPL-CC-1.0 */
 /*
- * Module: sha3sum.h     V1.x    May 2019         Jim McDevitt
+ * Module: sha3sum.h     V1.x    Nov 2019         Jim McDevitt
  *
  * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
  *                   All Rights Reserved.
  *
  * This file is a part of sha3sum and is governed by the
- * GNU general public license Version 2.0 ONLY, the full
- * text of which is contained in the file LICENSE included in all
+ * GNU general public license Version 2.0 ONLY AND
+ * the GPL Cooperation Commitment - GPL-CC-1.0; the full text
+ * of which is contained in the file LICENSE included in all
  * binary and source code distribution packages.
  *
  */
@@ -46,9 +48,9 @@ typedef enum { Success = 0,
 *************************************************************************/
 
 const char version_major[] = "1";
-const char version_minor[] = "18";
-const char version_rev[]   = "51";
-const char month[] = "October";
+const char version_minor[] = "20";
+const char version_rev[]   = "73";
+const char month[] = "November";
 const char year[] = "2019";
 
 #ifdef KeccakReference
@@ -251,7 +253,6 @@ int xopt = 0;                           /* zero, then one if -x used (key file) 
 int Xopt = 0;                           /* zero, then one if -X used (IV file) */
 int yopt = 0;                           /* PIM specified */
 uint64_t trials = 0;                    /* zero, then number of setups to run if -s used */
-int inject_not_init = 1;                /* one, then zero if inject() was initialized */
 int Encoding = 0;                       /* zero, then one if -q or -Q used (encrypting/decrypting) */
 int Initialized = 0;                    /* zero then set to one if hash is initialized */
 int Update_error = 0;                   /* if not zero, indicates an hash_update call failed */
