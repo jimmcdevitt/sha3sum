@@ -188,7 +188,7 @@ typedef enum { Success = 0,
 
 const char version_major[] = "1";
 const char version_minor[] = "22";
-const char version_rev[]   = "79";
+const char version_rev[]   = "80";
 const char month[] = "November";
 const char year[] = "2019";
 
@@ -362,7 +362,7 @@ static void Process_IV( unsigned int *bytes_used ) {
 	IV_processed = 1;	/* flag it processed if there was a IV or not */
 }
 
-static int inject(unsigned char *buffer, unsigned int size, int init) {
+static int inject(unsigned char *buffer, unsigned int size) {
 /* Inject the sponge with new material based initially on the contents of buffer */
 	int i;
 	unsigned char stream[WIDTH / 8];
@@ -372,7 +372,7 @@ static int inject(unsigned char *buffer, unsigned int size, int init) {
 	static int rbits, rbytes;
 
 	/* initialize state */
-	if ( init ) {
+	if ( !INJECT_INITIALIZED ) {
 		burn(state, sizeof(state));
 		memcpy(state, buffer, size);
 		rbits = r - 8;
@@ -1421,12 +1421,12 @@ static void optf(int argc, char **argv, int i) {
 		/* initialize and set up injection mechanism.
 		 * The number of bytes generated before new material is injected
 		 * is currently every 1e5 bytes or greater. */
-		/*/
 		duplexing ( 0, 0, stream0, BlockSize ); /* capture initial stream */
+		INJECT_INITIALIZED = 0;
 		if ( Update_error == 0 ) {
 			/* set up and give first injection */
 			if ( seed_used ) { /* if random seed used */
-				Update_error = inject(rseed, sizeof(rseed), 1);
+				Update_error = inject(rseed, sizeof(rseed));
 				if ( Update_error == 0 )
 					memcpy(seed, rseed, min(sizeof(seed), sizeof(rseed)));
 			}
@@ -1435,7 +1435,7 @@ static void optf(int argc, char **argv, int i) {
 				if ( Update_error == 0 ) {
 					if ( memcmp(stream0, stream, BlockSize) ) { /* is stream moving? */
 						memcpy(stream0, stream, BlockSize); /* yes it is */
-						Update_error = inject (stream, sizeof(stream), 1);
+						Update_error = inject (stream, sizeof(stream));
 						if ( Update_error == 0 )
 							memcpy(seed, stream, min(sizeof(seed), sizeof(stream)));
 					}
@@ -1458,7 +1458,7 @@ static void optf(int argc, char **argv, int i) {
 			 * INJECTION_THRESHOLD (currently 100,000)
 			 * bytes of key stream produced. */
 			if ( inject_time >= INJECTION_THRESHOLD ) {
-				if ( inject (0,0,0) ) {
+				if ( inject (0,0) ) {
 					printf("--F - Error: Injection failure - aborting option %s.\n", sw);
 					goto error;
 				}
@@ -2203,7 +2203,8 @@ error:
 	}
 
 	/* 4) Prime the pump. Initialize with the key and IV. */
-	if ( inject(KIV, sizeof(KIV), 1) )
+	INJECT_INITIALIZED = 0;
+	if ( inject(KIV, sizeof(KIV)) )
 		goto error;
 	burn (KIV, sizeof(KIV));
 
@@ -2232,7 +2233,7 @@ error:
 
 			/* time to inject? */
 			if ( inject_time >= INJECTION_THRESHOLD ) {
-				if ( inject(0, 0, 0) )
+				if ( inject(0, 0) )
 					goto error;
 				inject_time = 0;
 			}
