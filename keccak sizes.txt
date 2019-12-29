@@ -1,0 +1,7 @@
+1MB = 1,024 KB = 8,192 Kb = 8,192 * 1,024 = 8,388,608 bits
+
+-L = DEFAULT_SQUEEZE = 8192 bits
+
+-e = 8,192 bits (1KB)         / DEFAULT_SQUEEZE (8192bits) = 1 squeeze of 8192bits          = -e1       -L8192 = 1KB
+-e = 8,388,608 bits (1MB)     / DEFAULT_SQUEEZE (8192bits) = 1,024 squeezes of 8192bits     = -e1024    -L8192 = 1MB
+-e = 8,589,934,592 bits (1GB) / DEFAULT_SQUEEZE (8192bits) = 1,048,576 squeezes of 8192bits = -e1048576 -L8192 = 1GB

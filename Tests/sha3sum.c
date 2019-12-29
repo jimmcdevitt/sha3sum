@@ -1,17 +1,17 @@
 /* SPDX-License-Identifier: GPL-2.0-only AND GPL-CC-1.0 */
 /*
- * Module: sha3sum.c     V1.x    November 2019         Jim McDevitt
+ * Module: sha3sum.c     V1.x    Dec 2019         Jim McDevitt
  *
- * Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
+ * Copyright (c) 2012-2020 McDevitt Heavy Industries, Inc. (MHI)
  *                   All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software
  * and its documentation for NON-COMMERCIAL and/or COMMERCIAL
  * purposes is hereby granted governed by the GNU general public
  * license Version 2.0 ONLY AND the GPL Cooperation Commitment-
- * GPL-CC-1.0; the full text of which is contained in the file
- * LICENSE included in all binary and source code distribution
- * packages.
+ * GPL-CC-1.0; the full text of which is contained in the files
+ * LICENSE and COMMITMENT, included in all binary and source
+ * code distribution packages.
  *
  * MHI MAKES NO REPRESENTATIONS OR WARRANTIES ABOUT THE SUITABILITY OF
  * THE SOFTWARE, EITHER EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
@@ -83,7 +83,6 @@
  * Installation and documentation are provided in the files INSTALL and
  * README respectively.
  *
- *
  */
 
 /* Portions of this product are based in part on md6sum.
@@ -95,6 +94,7 @@
 /*************************************************************************
 **         K E C C A K   O P E R A T I N G   P A R A M E T E R S        **
 *************************************************************************/
+
 unsigned int d = DEFAULT_D;                   /* digest length (bits) */
 unsigned int r = DEFAULT_R;                   /* rate (bits) */
 unsigned int C = DEFAULT_C;                   /* capacity (bits) */
@@ -111,90 +111,11 @@ BitSequence delimitedSuffix = DEFAULT_DELIMITER;       /* delimited suffix:
 											   * the Keccak_SpongeAbsorbLastFewBits() function.
 											   * 0x01 means not to absorb any extra bits. */
 
-/*************************************************************************
-**                           G L O B A L S                              **
-*************************************************************************/
-int level = 0;                          /* level of intermediate values to print (1 - 3) */
-int HBL = 0;                            /* disk file block size */
-int keylen = 0;                         /* key length in bytes (the key stored in K[] */
-int IVlen = 0;                          /* IV length in bytes (stored in IV[]) */
-int msgbytelen = 0;                     /* -M message length (bytes) */
-int mBitLength = 0;                     /* Value of -l option, indicates bits to use of */
-										/* any switch that accepts a hex value */
-uint64_t oopt = 0;                      /* number of bits to append to the message to hash */
-uint64_t Oopt = 0;                      /* number of Bytes to append to the message to hash */
-uint64_t kb_count = 1;                  /* For arbitrary length output, kb_count is how many
-										 * -Ln instances to print of -en size output. default is one */
-/* counters */
-uint64_t bits_processed = 0;            /* bits processed so far */
-uint64_t absorb_calls = 0;              /* number of times hash_update called */
-uint64_t job_bits_processed;            /* bits processed so far (job total) */
-uint64_t job_absorb_calls = 0;          /* number of times hash_update called (job total) */
-uint64_t squeeze_calls = 0;             /* number of times hash_squeeze called */
-uint64_t job_squeeze_calls = 0;         /* number of times hash_squeeze called (job total) */
-uint64_t bits_squeezed = 0;             /* number of bits output */
-uint64_t job_bits_squeezed = 0;         /* number of bits output (job total) */
-uint64_t pim = KEY_ITERATIONS;			/* User specifed iteration count */
-int file_output = 0;                    /* number of output files created */
-
-/* flags */
-int MsgPresent = 0;                     /* zero, then one if -m or two if -M called */
-int lopt = 0;                           /* zero, then one if -l used */
-int Lopt = 0;                           /* zero, then one if -L used (squeeze mode) */
-int copt = 0;                           /* one if in optc() */
-int sopt = 0;							/* if one, -s was specified */
-int xopt = 0;                           /* zero, then one if -x used (key file) */
-int Xopt = 0;                           /* zero, then one if -X used (IV file) */
-int yopt = 0;                           /* PIM specified */
-uint64_t trials = 0;                    /* zero, then number of setups to run if -s used */
-int Encoding = 0;                       /* zero, then one if -q or -Q used (encrypting/decrypting) */
-int Initialized = 0;                    /* zero then set to one if hash is initialized */
-int Update_error = 0;                   /* if not zero, indicates an hash_update call failed */
-int file_error = 0;                     /* set to 1 if a open call failed */
-int Finalized = 0;                      /* zero then set to one if hash is finalized */
-int key_used = 0;                       /* zero if no key, one if -k, and two if -K */
-int IV_used = 0;                        /* zero if IV not used, one if -j, and two if -J */
-int Key_processed = 0;                  /* key(s) not yet processed */
-int IV_processed = 0;                   /* IV(s) not yet processed */
-int seed_used = 0;                      /* zero, then one if seed used (-s) */
-int print_key_ok = 0;                   /* User wants key to be printed with the other parameters */
-int print_parameters = 0;               /* if one, print input parameters */
-int eoj = 0;                            /* signal to timing routine for end of job */
-int file_created = 0;                   /* zero if no file opened, one if so */
-int print_switches = 0;                 /* zero suppresses printing, one to print configuration switches */
-int parameters_not_printed = 1;         /* zero if parameters printed, one if not */
-int Tag = 0;                            /* -N setting number */
-int INJECT_INITIALIZED = 0;             /* zero if injection state not initialized, one if it is */
-int ascii_data = 0;                     /* if zero, a binary file is created, if one, an ASCII
-										 * hex file is created. used with -f; default is one. */
-int print_intermediates = 0;            /* set to one to print intermediate results.
-										 * Only works if the "reference" version of
-										 * the Keccak routines is used. */
-/* files */
-FILE *outFile = NULL;                   /* Output channel for results */
-FILE *stat_file = NULL;                 /* binary output file used with -Ln */
-
-/*************************************************************************
-**             V E R S I O N   I N F O   &   T Y P E S                  **
-*************************************************************************/
-typedef enum { Success = 0,
-			   Fail = 1,
-			   Encrypt = 2,
-			   Decrypt = 4,
-			   Squeeze = 8,
-			   Duplex = 16,
-			   Fatal  = 911
-} mode;
-
-const char version_major[] = "1";
-const char version_minor[] = "22";
-const char version_rev[]   = "80";
-const char month[] = "November";
-const char year[] = "2019";
 
 /*************************************************************************
 **                     M I S C   R O U T I N E S                        **
 *************************************************************************/
+
 static uint64_t get_int(char *s) {
 /* return integer starting at s (input presumed to end with '\n')
 ** (It may be expressed in exponential format e.g. 1e9.)

@@ -1,12 +1,13 @@
+SPDX-License-Identifier: GPL-2.0-only AND GPL-CC-1.0
+
+    Program: sha3sum.c     V1.x    Dec 2019     Jim McDevitt
    
-    Program: sha3sum.c     V1.x    Nov 2019     Jim McDevitt
-   
-    Copyright (c) 2012-2019 McDevitt Heavy Industries, Ltd. (MHI)
+    Copyright (c) 2012-2020 McDevitt Heavy Industries, Ltd. (MHI)
                     All Rights Reserved.
 
-    This Program is governed by the GNU general public license Version 2.0,
-    the fulltext of which is contained in the file LICENSE included in all
-    binary and source code distribution packages.
+    This Program is governed by the GNU general public license Version 2.0
+    ONLY, the fulltext of which is contained in the files LICENSE and
+    COMMITMENT, included in all binary and source code distribution packages.
 
     This program is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

@@ -1,15 +1,17 @@
 #  SPDX-License-Identifier: GPL-2.0-only AND GPL-CC-1.0
 #
-#* Module: Makefile     V1.x    Nov 2019         Jim McDevitt
+#* Module: Makefile     V1.x    Dec 2019         Jim McDevitt
 #*
 #* Copyright (c) 2019 McDevitt Heavy Industries, Ltd. (MHI)
 #*                   All Rights Reserved.
 #*
 #* This file is a part of sha3sum and is governed by the
 #* GNU general public license Version 2.0 ONLY, the full
-#* text of which is contained in the file LICENSE included in all
-#* binary and source code distribution packages.
+#* text of which is contained in the files LICENSE and
+#* COMMITMENT, included in all binary and source code
+#* distribution packages.
 #*
+
 all: sha3sumr64 sha3sumr32 sha3sum64 sha3sum32 sha3sumc
 
 SOURCES_COMMON = \
