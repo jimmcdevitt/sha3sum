@@ -40,10 +40,10 @@
 *************************************************************************/
 
 const char version_major[] = "1";
-const char version_minor[] = "25";
-const char version_rev[]   = "92";
-const char month[] = "December";
-const char year[] = "2019";
+const char version_minor[] = "26";
+const char version_rev[]   = "96";
+const char month[] = "September";
+const char year[] = "2020";
 
 /* Build Types */
 #ifdef KeccakReference
@@ -358,9 +358,9 @@ char help_part_2[] =
 "\t\t=========================================\n"
 "\t\t VLO denotes variable length output.\n\n"
 "\t-on\tSlow n-bit one-way function. Update state with\n"
-"\t\tn 0 bits before the state is finalized.\n"
+"\t\tn bits before the state is finalized.\n"
 "\t-On\tSlow n-byte one-way function. Update state with\n"
-"\t\tn 0 bytes before the state is finalized.\n"
+"\t\tn bytes before the state is finalized.\n"
 "\t-p\tPrint input parameters.\n"
 "\t+/-q infile outfile\n"
 "\t\tStraight stream cipher. Apply key stream to file infile,\n"

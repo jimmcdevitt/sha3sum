@@ -3,3 +3,4 @@ bin/
 .cproject
 .project
 .vscode/
+.settings/language.settings.xml

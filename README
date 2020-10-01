@@ -92,9 +92,9 @@ Options:
      VLO denotes variable length output.
 
   -on Slow n-bit one-way function. Update state with
-    n 0 bits before the state is finalized.
+    n bits before the state is finalized.
   -On Slow n-byte one-way function. Update state with
-    n 0 bytes before the state is finalized.
+    n bytes before the state is finalized.
   -p  Print input parameters.
   +/-q infile outfile
     Straight stream cipher. Apply key stream to file infile,
