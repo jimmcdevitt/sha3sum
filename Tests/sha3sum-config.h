@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only AND GPL-CC-1.0 */
 /*
- * Module: sha3sum-config.h     V1.x    Dec 2019     Jim McDevitt
+ * Module: sha3sum-config.h     V1.x    Feb 2021     Jim McDevitt
  *
- * Copyright (c) 2012-2020 McDevitt Heavy Industries, Inc. (MHI)
+ * Copyright (c) 2012-2021 McDevitt Heavy Industries, Inc. (MHI)
  *                   All Rights Reserved.
  *
  * This file is a part of sha3sum and is governed by the
@@ -18,16 +18,16 @@
   #define KECCAK_SETTINGS_H_S
 
 /* This is for mingw on windows */
-/*
 #ifndef __mingw__
   #define  __mingw__
 #endif
-*/
 
 /* Use this for Linux */
+/*
 #ifndef __linux__
   #define  __linux__
 #endif
+*/
 
 /*************************************************************************
 **      S H A 3 S U M   C O N F I G U R A T I O N   S E C T I O N       **
@@ -42,6 +42,8 @@
 #define NIST_D1                     0x1F    /* NIST domain separator #1 */
 #define NIST_D2                     0x06    /* NIST domain separator #2 */
 #define QH_DS                       0x13    /* delimiter for quick hash ONLY. This constant reserved from any other use */
+#define QH_IV                       0xB5    /* delimeter used for deriving the IV only */
+#define QH_KY                       0xC5    /* delimeter used for deriving the key only */
 #define NO_SUFFIX                   0x01    /* used for Etherium */
 #define DEFAULT_DELIMITER        NIST_D2    /* default delimiter (1 byte), diversifier, or domain separator or ... */
 #define MAXROUNDS                     72    /* maximum number of rounds - see optR() */
@@ -54,7 +56,6 @@
 #define MSG_SIZE                    1024    /* maximum binary message size in bytes */
 #define SEEDSIZE                   WIDTH    /* size of seed in bits (-u) */
 #define SEED_HASH_COUNT                3    /* initial number of times to poll the O/S for random data during init */
-#define INJECTION_THRESHOLD       100000    /* number of bytes processed duplexing to re-seed the sponge */
 #define PRESETS                        9    /* number of presets LoadKeccakPresets() */
 #define FILESPEC_SIZE               1500    /* size of file spec buffer (bytes) */
 #define DISK_BLOCK_SIZE             1024    /* minimum number of bytes to read each disk access - multiple of 8 */
@@ -128,18 +129,19 @@
 #elif ((SEEDSIZE % 8) != 0)
   #error "Keccak.c Fatal error: seed size must be a multiple of 8"
 
-#elif ((NIST_D1 < 0x01 ) || (NIST_D1 > 0xff))
-  #error "Keccak.c Fatal error: 0x01 <= NIST_D1 <= 0xff"
-#elif ((NIST_D2 < 0x01 ) || (NIST_D2 > 0xff))
-  #error "Keccak.c Fatal error: 0x01 <= NIST_D2 <= 0xff"
-
-#elif (QH_DS < 0x01  || QH_DS > 0xff || QH_DS == NIST_D1 || QH_DS == NIST_D2)
-  #error "Keccak.c Fatal error: 0x01 <= QH_DS <= 0xff or same as NIST. Must be unique."
+#elif ((NIST_D1 < 0x01 ) || (NIST_D1 > 0xff) || (NIST_D1 == NIST_D2) || (NIST_D1 == QH_DS) || (NIST_D1 == QH_IV) || (NIST_D1 == QH_KY))
+  #error "Keccak.c Fatal error: 0x01 <= NIST_D1 <= 0xff or not unique."
+#elif ((NIST_D2 < 0x01 ) || (NIST_D2 > 0xff) || (NIST_D2 == NIST_D1) || (NIST_D2 == QH_DS) || (NIST_D2 == QH_IV) || (NIST_D2 == QH_KY))
+  #error "Keccak.c Fatal error: 0x01 <= NIST_D2 <= 0xff or not unique."
+#elif (QH_DS < 0x01  || QH_DS > 0xff || QH_DS == NIST_D1 || QH_DS == NIST_D2 || QH_DS == QH_IV || QH_DS == QH_KY)
+  #error "Keccak.c Fatal error: 0x01 <= QH_DS <= 0xff  or not unique."
+#elif (QH_IV < 0x01  || QH_IV > 0xff || QH_IV == NIST_D1 || QH_IV == NIST_D2 || QH_IV == QH_DS || QH_IV == QH_KY)
+  #error "Keccak.c Fatal error: 0x01 <= QH_IV <= 0xff  or not unique."
+#elif (QH_KY < 0x01  || QH_KY > 0xff || QH_KY == NIST_D1 || QH_KY == NIST_D2 || QH_KY == QH_DS || QH_KY == QH_IV)
+  #error "Keccak.c Fatal error: 0x01 <= QH_KY <= 0xff  or not unique."
 
 #elif ( SEED_HASH_COUNT < 1 || SEED_HASH_COUNT > 5)
   #error "Keccak.c Fatal error: SEED_HASH_COUNT must be at least 1 and no more than 5"
-#elif ( INJECTION_THRESHOLD < 1 )
-  #error "Keccak.c Fatal error: INJECTION_THRESHOLD < 1"
 #elif ( KEY_ITERATIONS < 10000 )
   #error "Keccak.c Fatal error: KEY_ITERATIONS < 10000"
 
@@ -150,6 +152,18 @@
   #error "Keccak.c Fatal error: File spec buffers should be at least 50 bytes in length."
 #elif ((DISK_BLOCK_SIZE % 8) != 0 || DISK_BLOCK_SIZE <= 0)
   #error "Keccak.c Fatal error: DISK_BLOCK_SIZE must be a multiple of 8 and > 0"
+#endif
+
+#ifdef __mingw__
+  #ifdef __linux__
+    #error "__mingw__ and __linux__ must NOT both be defined"
+  #endif
+#endif
+
+#ifndef __mingw__
+  #ifndef __linux__
+    #error "__mingw__ and __linux__ must NOT both be undefined"
+  #endif
 #endif
 
 /*************************************************************************

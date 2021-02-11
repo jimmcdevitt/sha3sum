@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only AND GPL-CC-1.0 */
 /*
- * Module: sha3sum.h     V1.x    Dec 2019         Jim McDevitt
+ * Module: sha3sum.h     V1.x    Feb 2021         Jim McDevitt
  *
- * Copyright (c) 2012-2020 McDevitt Heavy Industries, Inc. (MHI)
+ * Copyright (c) 2012-2021 McDevitt Heavy Industries, Inc. (MHI)
  *                   All Rights Reserved.
  *
  * This file is a part of sha3sum and is governed by the
@@ -40,10 +40,10 @@
 *************************************************************************/
 
 const char version_major[] = "1";
-const char version_minor[] = "26";
-const char version_rev[]   = "96";
-const char month[] = "September";
-const char year[] = "2020";
+const char version_minor[] = "28";
+const char version_rev[]   = "108";
+const char month[] = "February";
+const char year[] = "2021";
 
 /* Build Types */
 #ifdef KeccakReference
@@ -109,7 +109,7 @@ typedef enum { Success = 0,
 
 /* length in bytes to use for disk I/O that is a multiple of (a) and is at least (b) bytes */
 #ifndef SETHBL
-	#define SETHBL(a,b) HBL = (a) / 8; HBL += (b) - (b) % HBL;
+	#define SETHBL(a,b) HBL = (a) / 8; HBL += (b) - ( (b) % HBL );
 #endif
 
 /*************************************************************************
@@ -138,7 +138,7 @@ static void Save_settings();
 static void randombytes(unsigned char *x,unsigned long long xlen);
 #endif
 static void Restore_settings();
-static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, const int iterations);
+static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, const int iterations, const BitSequence delim);
 static void check_line(char *line);
 static int compute_hex_hashval();
 static int ConvertDigitsToBytes(BitSequence* digits, BitSequence* bytes, int n);

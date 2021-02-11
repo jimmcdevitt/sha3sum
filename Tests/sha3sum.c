@@ -1,8 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only AND GPL-CC-1.0 */
 /*
- * Module: sha3sum.c     V1.x    Dec 2019         Jim McDevitt
+ * Module: sha3sum.c     V1.x    Feb 2021         Jim McDevitt
  *
- * Copyright (c) 2012-2020 McDevitt Heavy Industries, Inc. (MHI)
+ * Copyright (c) 2012-2021 McDevitt Heavy Industries, Inc. (MHI)
  *                   All Rights Reserved.
  *
  * Permission to use, copy, modify, and/or distribute this software
@@ -85,7 +85,7 @@
  *
  */
 
-/* Portions of this product are based in part on md6sum.
+/* A portion of this product is based in part on md6sum.
  * Copyright (c) 2008 Ronald L. Rivest
  */
 
@@ -111,7 +111,6 @@ BitSequence delimitedSuffix = DEFAULT_DELIMITER;       /* delimited suffix:
 											   * the Keccak_SpongeAbsorbLastFewBits() function.
 											   * 0x01 means not to absorb any extra bits. */
 
-
 /*************************************************************************
 **                     M I S C   R O U T I N E S                        **
 *************************************************************************/
@@ -122,7 +121,7 @@ static uint64_t get_int(char *s) {
 */
 #ifdef __mingw__
 	double g = 0;
-	g = strtod(s,NULL);
+	g = strtod(s, NULL);
 #else
 	long double g = 0;
 	sscanf(s, "%Lg", &g);
@@ -202,7 +201,7 @@ static void Process_Key( unsigned int *bytes_used ) {
 	if ( xopt ) {											/* if a key file used */
 		for (i = 0; i < KEY_FILE_SIZE; i++)					/*   copy key file to the buffer */
 			binkey[i] = key_data[i];
-		if ( key_used ) {									/*   if also a key */
+		if ( key_used ) {									/*   if also a key from CLI */
 			for (i = 0; i < KEY_SIZE; i++)
 				binkey[i] ^= binary_key[i];					/*     then add the key */
 			*bytes_used = max (KEY_FILE_SIZE, KEY_SIZE);	/*     save the size of key + key file */
@@ -218,18 +217,16 @@ static void Process_Key( unsigned int *bytes_used ) {
 		}
 	}
 
-	/* If key(s) were used, (or -s in the command line), hash the ENTIRE buffer */
-	if ( *bytes_used > 0 || sopt == 1 ) {
-		if ( sopt == 0 ) {	/* Don't clear key material if called from -s option */
-			/* bag all original key material */
-			burn (key_data, sizeof(key_data));
-			burn (binary_key, sizeof(binary_key));
-			if ( !print_key_ok )		/* bag only if -S not used (hidden option) */
-				burn (K, sizeof(K));
-		}
-		/* slow one-way hash */
-		Update_error = quick_hash (binkey, MAXSIZE / 8, 1024, pim);
+	if ( !sopt ) {	/* Don't clear key material if called from -s option */
+		/* bag all original key material */
+		burn (key_data, sizeof(key_data));
+		burn (binary_key, sizeof(binary_key));
+		if ( !print_key_ok )		/* bag only if -S not used (hidden option) */
+			burn (K, sizeof(K));
 	}
+
+	/* slow one-way hash entire buffer even if no key */
+	Update_error = quick_hash (binkey, MAXSIZE / 8, 1024, pim, QH_KY);
 
 	if ( Update_error ) {
 		*bytes_used = 0;
@@ -249,77 +246,50 @@ static void Process_IV( unsigned int *bytes_used ) {
 
 	burn (binIV, MAXSIZE / 8);
 
+	/* Key must be processed first */
+	if ( !Key_processed ) {
+		Update_error = 111;
+		goto error;
+	}
+
 	if ( Xopt ) {										/* if an IV file used */
 		for (i = 0; i < sizeof(IV_data); i++)
 			binIV[i] = IV_data[i];						/*   copy the IV file to the buffer */
-
-		if ( IV_used ) {								/*   if also an IV from the command line used */
+		if ( IV_used ) {								/*   if also an IV from the CLI */
 			for (i = 0; i < IVlen; i++)
 				binIV[i] ^= binary_IV[i];				/*     add the IV to the IV file */
 			*bytes_used =  max(IV_FILE_SIZE, IVlen);	/*     save the size of IV + IV file */
+			for (i = 0; i < MAXSIZE / 8; i++)			/*     update the buffer with the IV AND */
+				binIV[i] ^= ~binkey[i];					/*     the complement of the KEY */	
 		}
 		else											/*   otherwise */
 			*bytes_used = IV_FILE_SIZE;					/*     save the size of the IV file */
 	}
-	else												/* otherwise */
+	else {												/* otherwise */
 		if ( IV_used ) {                             	/*   if just the IV only */
 			*bytes_used = IVlen;						/*     save the size of the IV */
-			for (i = 0; i < IVlen; i++)
-				binIV[i] = binary_IV[i];				/*     update the buffer with the IV only */	
-		}
-
-	/* If IV(s) used, hash the ENTIRE buffer */
-	if ( *bytes_used ) {
-		Update_error = quick_hash (binIV, MAXSIZE / 8, 1024, 2);
-		if ( Update_error ) {
-			burn (IV_data, sizeof(IV_data));
-			burn (binary_IV, sizeof(binary_IV));
-			*bytes_used = 0;
-			burn (binIV, MAXSIZE / 8);
-			printf("--F - Error in IV computation; error code %d.", Update_error);
-			return;
+			for (i = 0; i < IVlen; i++)					/*     update the buffer with the IV */
+				binIV[i] = binary_IV[i];
+			for (i = 0; i < MAXSIZE / 8; i++)			/*     and combine with the */
+				binIV[i] ^= ~binkey[i];					/*     complement of the key */
 		}
 	}
+
+	/* hash the ENTIRE buffer even if no IV */
+	Update_error = quick_hash (binIV, MAXSIZE / 8, 1024, 2, QH_IV);
+
+error:
+
+	if ( Update_error ) {
+		burn (IV_data, sizeof(IV_data));
+		burn (binary_IV, sizeof(binary_IV));
+		*bytes_used = 0;
+		burn (binIV, MAXSIZE / 8);
+		printf("--F - Error in IV computation; error code %d.", Update_error);
+		return;
+	}
+
 	IV_processed = 1;	/* flag it processed if there was a IV or not */
-}
-
-static int inject(unsigned char *buffer, unsigned int size) {
-/* Inject the sponge with new material based initially on the contents of buffer */
-	int i;
-	unsigned char stream[WIDTH / 8];
-	static unsigned char state[MAXSIZE / 8];
-	unsigned char istate[MAXSIZE / 8 ];
-	static int limit;
-	static int rbits, rbytes;
-
-	/* initialize state */
-	if ( !INJECT_INITIALIZED ) {
-		burn(state, sizeof(state));
-		memcpy(state, buffer, size);
-		rbits = r - 8;
-		rbytes = rbits >> 3;
-		limit = min(sizeof(state), sizeof(Duplex_out));
-		INJECT_INITIALIZED = 1;
-	}
-
-	if ( !INJECT_INITIALIZED ) {
-		printf("--F - Error: injection failure, never initialized.\n");
-		return (Fail);
-	}
-
-	/* hash the copy of the state */
-	memcpy(istate, state, sizeof(state));
-	Update_error = quick_hash(istate, sizeof(istate), 1024, 1);
-	if ( Update_error ) return (Update_error);
-
-	/* inject the hashed copy of the state into the sponge */
-	duplexing(istate, rbits, stream, rbytes);
-	if ( Update_error ) return (Update_error);
-
-	/* add in the compliment of the output stream */
-	for ( i = 0; i < limit; i++)
-		state[i] ^= ~stream[i];
-	return (Success);
 }
 
 /*************************************************************************
@@ -363,7 +333,6 @@ static int inject(unsigned char *buffer, unsigned int size) {
 #endif
 
 int tod_printed = 0;
-
 static void print_tod() {
 /* print time-of-day if it hasn't been printed yet. */
 	time_t now;
@@ -565,12 +534,12 @@ static void hash_init() {
 
 	/* Process key and key file if needed..
 	 * Key and key file sizes are of fixed size and zero padded. */
-	if ( !Key_processed ) Process_Key( &Key_bytes_used );
+	if ( Key_processed == 0 ) Process_Key( &Key_bytes_used );
 	if ( Update_error ) return;
 
 	/* Process IV and IV file if needed.
 	 * IV and IV files are of fixed size and zero padded. */
-	if ( !IV_processed ) Process_IV( &IV_bytes_used );
+	if ( IV_processed == 0 ) Process_IV( &IV_bytes_used );
 	if ( Update_error ) return;
 
 	/* initialize the hash */
@@ -614,13 +583,13 @@ static void hash_init() {
 	if ( seed_used && !Encoding )
 		hash_update( rseed, (DataLength) SEEDSIZE );
 
-	/* update the key */
+	/* update with the key */
 	if ( Key_bytes_used && Update_error == 0 )
-		hash_update (binkey, (DataLength) Key_bytes_used );
+		hash_update (binkey, (DataLength) MAXSIZE / 8 );
 
-	/* update the IV */
+	/* update with the IV */
 	if ( IV_bytes_used && Update_error == 0 )
-		hash_update (binIV, (DataLength) IV_bytes_used );
+		hash_update (binIV, (DataLength) MAXSIZE / 8 );
 
 	/* flag initialization success or failure */
 	if ( Update_error ) {
@@ -721,9 +690,10 @@ static mode hash_squeeze() {
 * bits. Squeeze as much as you like. Just like Charmin.
 */
 	mode err;
-	if ( Finalized && Initialized && Update_error == 0 ) {
-		err = (mode) Keccak_HashSqueeze(&hash, hashval, (DataLength) squeezedOutputLength);
-		if ( err )
+
+	if (Finalized && Initialized && Update_error == 0) {
+		err = (mode)Keccak_HashSqueeze(&hash, hashval, (DataLength)squeezedOutputLength);
+		if (err)
 			return (err);
 		else {
 			bits_squeezed += squeezedOutputLength;
@@ -737,12 +707,11 @@ static mode hash_squeeze() {
 	return (Fail);
 }
 
-static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, const int iterations) {
-/* do a quick hash on the supplied buffer. the buffer is then updated with the hash.
- */
+static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, const int iterations, const BitSequence delim) {
+	/* do a quick hash on the supplied buffer. the buffer is then updated with the hash. */
 	int err, i;
 	int iter = 1;
-	Save_settings();	/* save settings */
+	Save_settings(); /* save settings */
 
 	/* configure with new parameters */
 	Initialized = 0;
@@ -754,13 +723,13 @@ static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, co
 
 	/* ensure domain separation for this hash
 	 * enforced in config and optD() */
-	delimitedSuffix = QH_DS;
+	delimitedSuffix = delim;
 
 	/* set the output buffer length */
 	squeezedOutputLength = MAXSIZE;
 
 	/* initialize the state and set up for squeeze mode */
-	if ( err=Keccak_HashInitialize(&hash, r, C, d, delimitedSuffix) ) {
+	if ( err = Keccak_HashInitialize(&hash, r, C, d, delimitedSuffix) ) {
 		Restore_settings();
 		return (err + 100);
 	}
@@ -797,15 +766,17 @@ static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, co
 	}
 
 	/* Finalize the hash */
-	if ( err=Keccak_HashFinal(&hash, hashval) ) {
+	if ( err = Keccak_HashFinal(&hash, hashval) ) {
 		Restore_settings();
 		return (err + 400);
 	}
 	Finalized = 1;
 
 	/* Get the hash of the buffer */
-	if (iterations > 1)
+	if (iterations > 1) {
+		printf ("\n--QH Iteration loop: %d\n", iterations);
 		iter = iterations;
+	}
 	for (i = 0; i < iter; i++) {
 		hash_squeeze();
 		if ( Update_error ) {
@@ -820,13 +791,13 @@ static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, co
 		return (err + 600);
 	}
 
-	/* restore settings */
-	Restore_settings();
-
 	/* copy the hash value to the buffer */
+	burn(buffer, sizeof(buffer));
 	memcpy(buffer, hashval, size);
+	Restore_settings();
 	return (Success);
 }
+
 /*************************************************************************
 **   K E C C A K   D U P L E X   C O N S T R U C T   I N T E R F A C E  **
 *************************************************************************/
@@ -856,11 +827,11 @@ static void duplex_init() {
 	init_counters_flags();
 
 	/* Process key(s) if any. */
-	if ( !Key_processed ) Process_Key ( &Key_bytes_used );
+	if ( Key_processed == 0 ) Process_Key ( &Key_bytes_used );
 	if ( Update_error ) return;
 
 	/* Process IV(s) if any. */
-	if ( !IV_processed ) Process_IV ( &IV_bytes_used );
+	if ( IV_processed == 0 ) Process_IV ( &IV_bytes_used );
 	if ( Update_error ) return;
 
 	/* do the initialization */
@@ -905,11 +876,11 @@ static void duplex_init() {
 
 	/* Update state with key(s) if any. */
 	if ( Update_error == 0 && Key_bytes_used )
-		Duplex_Queue(binkey, Key_bytes_used, bit_bucket);
+		Duplex_Queue(binkey, MAXSIZE / 8, bit_bucket);
 
 	/* Update state with IV(s) if any. */
 	if ( Update_error == 0 && IV_bytes_used )
-		Duplex_Queue(binIV, IV_bytes_used, bit_bucket);
+		Duplex_Queue(binIV, MAXSIZE / 8, bit_bucket);
 
 	if ( Update_error )
 		Initialized = 0;	/* problem */
@@ -1343,22 +1314,16 @@ static void optf(int argc, char **argv, int i) {
 		 * The number of bytes generated before new material is injected
 		 * is currently every 1e5 bytes or greater. */
 		duplexing ( 0, 0, stream0, BlockSize ); /* capture initial stream */
-		INJECT_INITIALIZED = 0;
 		if ( Update_error == 0 ) {
-			/* set up and give first injection */
-			if ( seed_used ) { /* if random seed used */
-				Update_error = inject(rseed, sizeof(rseed));
-				if ( Update_error == 0 )
-					memcpy(seed, rseed, min(sizeof(seed), sizeof(rseed)));
-			}
+			/* set up */
+			if ( seed_used ) /* if random seed used */
+				memcpy(seed, rseed, min(sizeof(seed), sizeof(rseed)));
 			else {  /* random seed not used */
 				duplexing ( 0, 0, stream, BlockSize ); /* grab another stream */
 				if ( Update_error == 0 ) {
 					if ( memcmp(stream0, stream, BlockSize) ) { /* is stream moving? */
 						memcpy(stream0, stream, BlockSize); /* yes it is */
-						Update_error = inject (stream, sizeof(stream));
-						if ( Update_error == 0 )
-							memcpy(seed, stream, min(sizeof(seed), sizeof(stream)));
+						memcpy(seed, stream, min(sizeof(seed), sizeof(stream)));
 					}
 				}
 			}
@@ -1372,19 +1337,6 @@ static void optf(int argc, char **argv, int i) {
 
 		while ( bits_are_needed ) {
 			unsigned int datalen = min (bits_are_needed, BlockSize);
-			/* Inject new material when we reach the threshold.
-			 * Since re_seeding every r/8-1
-			 * bytes costs about the same as mute calls, I
-			 * re-seed each call. New material is injected every
-			 * INJECTION_THRESHOLD (currently 100,000)
-			 * bytes of key stream produced. */
-			if ( inject_time >= INJECTION_THRESHOLD ) {
-				if ( inject (0,0) ) {
-					printf("--F - Error: Injection failure - aborting option %s.\n", sw);
-					goto error;
-				}
-				inject_time = 0;
-			}
 
 			/* update the seed */
 			for(k = 0; k < datalen; k++)
@@ -1394,7 +1346,6 @@ static void optf(int argc, char **argv, int i) {
 			duplexing ( seed, datalen << 3, stream, datalen );	/* generate stream */
 			if ( memcmp(stream0, stream, datalen) == 0 ) Update_error = 812;
 			memcpy(stream0, stream, datalen);
-			inject_time += datalen;
 
 			if ( Update_error ) {
 				printf("--F - Error: Duplexing error %d during binary output in option %s.\n", Update_error, sw);
@@ -1417,12 +1368,12 @@ static void optf(int argc, char **argv, int i) {
 		/* Print out pseudo HMAC of the files fingerprint. */
 		for (i = 0; i < WIDTH / 8; i++)
 			Duplex_out[i] ^= 0x36;
-		Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1);
+		Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1, QH_DS);
 		if ( Update_error ) goto error;
 
 		for (i = 0; i < WIDTH / 8; i++)
 			Duplex_out[i] ^= 0x5c;
-		Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1);
+		Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1, QH_DS);
 		if ( Update_error ) goto error;
 
 		printf("-- Fingerprint of '%s':\n-- ", argv[i + 1]);
@@ -1956,23 +1907,17 @@ static void optQ(int argc, char **argv, int i) {
  *					1.	The data from file infile is XORed with the "last block"
  *                      of cipher text or the IV if this is the first block.
  *
- *					2.	The sponge is re-seeded every r/8 - 1 bytes with
- *						the "last block" of cipher text, or the IV if its
- *						the first block, to produce the key stream. If the
- *						number of bytes read crosses a threshold, inject
- *						new material (originating from the key(s) and IV(s)).
- *
- *					3.	The key stream from step two is then summed (modulo 2)
+ *					2.	The key stream from step one is then summed (modulo 2)
  *						with the data from step one, this then becomes the
  *						"last block" of cipher text, and is written to file
  *						outfile.
  *
- *					4.	go to step one.
+ *					3.	go to step one.
  */
 
 	FILE *src_file;
 	FILE *crypt_file;
-	unsigned char key_stream[WIDTH / 8], KIV[(MAXSIZE / 8)];
+	unsigned char key_stream[WIDTH / 8];
 	unsigned int j, l;
 	int offset, bytes;
 	unsigned int buffer_not_empty, datalength;
@@ -1980,8 +1925,8 @@ static void optQ(int argc, char **argv, int i) {
 	/* Initialize and set mode -- Encrypt(+) or Decrypt(-) */
 	char *sw = argv[i];
 	mode Direction = Encrypt;	/* Encrypt */
-	if ( argv[i][0] == '-' )	/* Decrypt */
-		Direction = Decrypt;
+	if ( argv[i][0] == '-' )
+		Direction = Decrypt;	/* Decrypt */
 
 	if ( i == argc - 1 || i == argc - 2 ) {
 		printf("--F - Error: Two files required for %s option; %s ignored.\n", sw, sw );
@@ -2031,22 +1976,11 @@ static void optQ(int argc, char **argv, int i) {
 	if ( !IV_processed ) Process_IV( &IV_bytes_used );
 	if (Update_error) goto error;
 
-	/* Add the compliment of the binary key
-	   to the IV and hash it */
-	for (i = 0; i < (MAXSIZE / 8); i++)
-		binIV[i] ^= ~binkey[i];
-
-	Update_error = quick_hash (binIV, MAXSIZE / 8, 1024, 2);
-	if ( Update_error )
-		goto error;
-
-	IV_bytes_used = MAXSIZE / 8; /* all of it */
-
 	/* Calculate file buffer size to be the greater of the IV size and
 	 * the key size then making it a multiple of the block size and at least
 	 * DISK_BLOCK_SIZE bytes long. */
 	int BlockSize = (r >> 3) - 1;   /* Maximum duplex input size is r-2 bits but we will use r-8 bits. */
-	SETHBL(BlockSize, max( max( IV_bytes_used, Key_bytes_used ), DISK_BLOCK_SIZE) )
+	SETHBL( BlockSize, max(MAXSIZE / 8, DISK_BLOCK_SIZE) )
 
 	/* allocate input buffer */
 	unsigned char *data = (unsigned char *) malloc( HBL );
@@ -2078,20 +2012,12 @@ static void optQ(int argc, char **argv, int i) {
 		return;
 	}
 
-	/* 1) Initialize the chain vector and cipher_text vector with the IV */
+	/* Initialize the chain vector and cipher_text vector with IV */
 	burn (chain_vector, HBL);
-	memcpy (chain_vector, binIV, IV_bytes_used);
+	memcpy (chain_vector, binIV, HBL);
 	memcpy (cipher_text, chain_vector, HBL);
 
-	/* 2) Combine key & IV and hash. All injection material is derived from
-	 * this bit sequence. */
-	burn( KIV, (MAXSIZE / 8) );
-	for (j = 0; j < (MAXSIZE / 8); j++)
-		KIV[j] ^= ~binIV[j];
-	if ( (Update_error = quick_hash(KIV, (MAXSIZE / 8), 1024, 2)) )
-		goto error;
-
-	/* 3) Initialize the duplex state */
+	/* Initialize the duplex state */
 	Encoding = 1;   /* Flag so seed can't be used in init */
 	duplex_init();  /* initialize duplex */
 	Encoding = 0;
@@ -2116,35 +2042,22 @@ error:
 
 		burn (chain_vector, HBL);
 		burn (cipher_text, HBL);
-		burn (KIV, sizeof(KIV));
 		burn (key_stream, WIDTH / 8);
 		burn (data, HBL);
 		burn (Duplex_out, WIDTH / 8);
 		return;
 	}
 
-	/* 4) Prime the pump. Initialize with the key and IV. */
-	INJECT_INITIALIZED = 0;
-	if ( inject(KIV, sizeof(KIV)) )
-		goto error;
-	burn (KIV, sizeof(KIV));
-
-	/* INJECTION_THRESHOLD is the amount of key stream
-	 * produced before injecting new material.
-	 * This will impact performance if set too low.
-	 * INJECTION_THRESHOLD is currently set at 100000 bytes.
-	 * 100000 or greater has minimal impact on speed. */
-	uint64_t inject_time = 0; /* initialize injection interval */
-
 	/* read the input file and do the work */
 	while ( (bytes = fread (data, 1, HBL, src_file)) != 0 ) {
 		buffer_not_empty = bytes;
 		offset = 0;
+
 		if (Direction == Encrypt)
-		/* if encrypting, XOR the plain text with the previous disk block of
-		 * cipher text. If decrypting, set the chain vector to the cipher text just read. */
+			/* if encrypting, XOR the plain text with the previous disk block of
+			 * cipher text. If decrypting, set the chain vector to the cipher text just read. */
 			for (l = 0; l < bytes; l++)
-				data[l] ^= chain_vector[l];
+				data[l] ^= chain_vector[l];	
 		else    /* Decrypt */
 			memcpy(chain_vector, data, bytes);
 
@@ -2152,14 +2065,7 @@ error:
 		while ( buffer_not_empty ) {
 			datalength = min (buffer_not_empty, BlockSize);
 
-			/* time to inject? */
-			if ( inject_time >= INJECTION_THRESHOLD ) {
-				if ( inject(0, 0) )
-					goto error;
-				inject_time = 0;
-			}
-
-			/* seed the sponge with r/8-1 bytes of the previous block
+			/* feed the sponge with r/8-1 bytes of the previous block
 			 * of cipher text if encrypting, or the cipher text just read
 			 * if decrypting. Generate the key stream. */
 			if ( Direction == Encrypt ) {
@@ -2177,10 +2083,9 @@ error:
 			for (j = offset, l = 0; j < offset + datalength; j++, l++)
 				data[j] ^= key_stream[l];
 
-			/* update our position in the buffer and when to inject */
+			/* update our position in the buffer */
 			buffer_not_empty -= datalength;
-			offset += datalength;
-			inject_time += datalength;
+			offset += datalength;	
 		}
  
 		/* If encrypting, set the chain vector to the cipher text. If decrypting, XOR
@@ -2196,7 +2101,7 @@ error:
 
 		/* write the data to the output file */
 		if ( fwrite( data, 1, bytes, crypt_file ) != bytes )
-/*	        Fatal I/O write error */
+		/* Fatal I/O write error */
 			goto error;
 	}
 
@@ -2205,7 +2110,6 @@ error:
 	burn (data, HBL);                           /* file data */
 	burn (chain_vector, HBL);                   /* chain block */
 	burn (cipher_text, HBL);                    /* cipher text */
-	burn (KIV, MAXSIZE / 8);                    /* combined key & IV */
 	free (chain_vector);                        /* release it */
 	free (data);                                /* deallocate the input buffer */
 	free (cipher_text);                         /* deallocate the cipher text buffer */
@@ -2213,19 +2117,20 @@ error:
 	Initialized = 1;							/* reset */
 	Print_Parameters();                         /* print parameters if requested */
 
-	/* print out the pseudo HMAC of the files fingerprint */
+	/* print out the fingerprint of the file */
 	for (i = 0; i < WIDTH / 8; i++)
 		Duplex_out[i] ^= 0x36;
-	Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1);
+	Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1, QH_DS);
 	if ( Update_error ) goto error;
 
 	for (i = 0; i < WIDTH / 8; i++)
 		Duplex_out[i] ^= 0x5c;
-	Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1);
+	Update_error = quick_hash (Duplex_out, WIDTH / 8, 1024, 1, QH_DS);
 	if ( Update_error ) goto error;
 
 	printf("-- Fingerprint of '%s':\n-- ", GenIVfile);
-	PrintBuffer (Duplex_out, max(min(C / 16, BlockSize), 1));
+	unsigned int hm = min(min(C / 16, BlockSize), 32);
+	PrintBuffer (Duplex_out, hm);
 	burn (Duplex_out, WIDTH / 8);	/* zero the accumulator */
 
 	print_time();	/* print timing data if wanted */
@@ -2308,7 +2213,7 @@ static void opts(char *optstr) {
 /* Setup time trials for state initialization
  * and any other parameters such as a key, key file,
  * IV, IV file, and/or a seed as specified on the
- * command line before -s. This is also used to test          get_int(optstr + 2)
+ * command line before -s. This is also used to test
  * if KEY_ITERATIONS is sufficiently large in computing
  * cost to make a rainbow table or dictionary attack
  * infeasible when a key is used (-K, or -k, and/or -x).
@@ -2415,6 +2320,7 @@ static void optu() {
 			ran = rand();
 			ran1 = rand();
 			if ( ran == 0
+				|| ran == ran1
 				|| ran == 0xFFFFFFFFFFFFFFFF
 				|| ran1 == 0
 				|| ran1 == 0xFFFFFFFFFFFFFFFF ) {
@@ -2474,7 +2380,7 @@ static void optu() {
 	/* copy the sum of the random bits generated and
 	 * hash the result using SEED_HASH_COUNT squeezes */
 	memcpy(rseed, rseed1, SEEDSIZE / 8);
-	Update_error = quick_hash (rseed, SEEDSIZE / 8, 1024, SEED_HASH_COUNT);
+	Update_error = quick_hash (rseed, SEEDSIZE / 8, 1024, SEED_HASH_COUNT, QH_DS);
 
 error:
 
@@ -2543,7 +2449,7 @@ static void optx(int argc, char **argv, int i) {
 	}
 
 	Key_processed = 0;
-	quick_hash ( key_data, KEY_FILE_SIZE, 1024, 1 );
+	quick_hash ( key_data, KEY_FILE_SIZE, 1024, 1, QH_DS );
 	if ( Update_error ) {
 		printf("--W - Key file processing error; '-x %s' ignored ", argv[i+1]);
 		return;
@@ -2599,7 +2505,7 @@ static void optX(int argc, char **argv, int i) {
 	}
 
 	IV_processed = 0;
-	quick_hash ( IV_data, IV_FILE_SIZE, 1024, 1 );
+	quick_hash ( IV_data, IV_FILE_SIZE, 1024, 1, QH_DS );
 	if ( Update_error ) {
 		printf("--W - IV file processing error; '-X %s' ignored ", argv[i+1]);
 		return;
@@ -2933,7 +2839,7 @@ static void Print_Parameters() {
 	unsigned int i, j, dlen, offset;
 	if ( print_parameters == 1 && parameters_not_printed && Finalized ) {   /* print input parameters if requested */
 		print_tod();
-		printf("-- Algorithm: %s (%s)\n", settings[0].desig, settings[0].tag);
+		printf("\n-- Algorithm: %s (%s)\n", settings[0].desig, settings[0].tag);
 		printf("-- C = %7d (capacity)\n", C);
 		printf("-- r = %7d (bit rate)\n", r);
 		if ( Lopt ) {
