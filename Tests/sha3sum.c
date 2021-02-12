@@ -773,10 +773,6 @@ static int quick_hash(unsigned char *buffer, int size, unsigned int capacity, co
 	Finalized = 1;
 
 	/* Get the hash of the buffer */
-	if (iterations > 1) {
-		printf ("\n--QH Iteration loop: %d\n", iterations);
-		iter = iterations;
-	}
 	for (i = 0; i < iter; i++) {
 		hash_squeeze();
 		if ( Update_error ) {
